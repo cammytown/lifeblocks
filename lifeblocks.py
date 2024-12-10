@@ -568,7 +568,35 @@ class ProjectTimer:
         add_projects_to_tree()
 
     def pick_project(self):
-        # First pick a top-level project
+        def calculate_weighted_projects(projects):
+            """Helper function to calculate time-based weights for a list of projects"""
+            now = datetime.now()
+            weighted_projects = []
+            
+            for project in projects:
+                base_weight = project[2]
+                last_picked = datetime.strptime(project[3], '%Y-%m-%d %H:%M:%S.%f') if project[3] else None
+                
+                time_weight = (now - last_picked).days / 7 if last_picked else 2
+                total_weight = base_weight * (1 + time_weight)
+                weighted_projects.append((project, total_weight))
+                
+            return weighted_projects
+
+        def select_weighted_project(weighted_projects):
+            """Helper function to randomly select a project based on weights"""
+            total = sum(w for _, w in weighted_projects)
+            r = random.uniform(0, total)
+            upto = 0
+            
+            for project, weight in weighted_projects:
+                upto += weight
+                if upto > r:
+                    return project
+                    
+            return weighted_projects[-1][0] if weighted_projects else None
+
+        # Get top-level projects
         self.cursor.execute('''
             SELECT id, name, weight, last_picked
             FROM projects
@@ -579,39 +607,11 @@ class ProjectTimer:
         if not projects:
             return None
 
-        # Calculate time-based weights
-        now = datetime.now()
-        weighted_projects = []
-        
-        for project in projects:
-            base_weight = project[2]
-            last_picked = datetime.strptime(project[3], '%Y-%m-%d %H:%M:%S.%f') if project[3] else None
-            
-            if last_picked:
-                days_since = (now - last_picked).days
-                time_weight = days_since / 7
-            else:
-                time_weight = 2
-                
-            total_weight = base_weight * (1 + time_weight)
-            weighted_projects.append((project, total_weight))
+        # Select parent project
+        weighted_parents = calculate_weighted_projects(projects)
+        selected_project = select_weighted_project(weighted_parents)
 
-        # Random selection based on weights
-        total = sum(w for _, w in weighted_projects)
-        r = random.uniform(0, total)
-        upto = 0
-        
-        selected_project = None
-        for project, weight in weighted_projects:
-            upto += weight
-            if upto > r:
-                selected_project = project
-                break
-                
-        if not selected_project:
-            selected_project = weighted_projects[-1][0]
-
-        # Check if selected project has children
+        # Check for children
         self.cursor.execute('''
             SELECT id, name, weight, last_picked
             FROM projects
@@ -621,31 +621,9 @@ class ProjectTimer:
         children = self.cursor.fetchall()
         
         if children:
-            # Randomly select a child project using the same weighting system
-            child_weights = []
-            for child in children:
-                base_weight = child[2]
-                last_picked = datetime.strptime(child[3], '%Y-%m-%d %H:%M:%S.%f') if child[3] else None
-                
-                if last_picked:
-                    days_since = (now - last_picked).days
-                    time_weight = days_since / 7
-                else:
-                    time_weight = 2
-                    
-                total_weight = base_weight * (1 + time_weight)
-                child_weights.append((child, total_weight))
-
-            total = sum(w for _, w in child_weights)
-            r = random.uniform(0, total)
-            upto = 0
-            
-            for child, weight in child_weights:
-                upto += weight
-                if upto > r:
-                    return child
-                    
-            return child_weights[-1][0]
+            # Select child project using same weighting system
+            weighted_children = calculate_weighted_projects(children)
+            return select_weighted_project(weighted_children)
         
         return selected_project
 
@@ -681,7 +659,11 @@ class ProjectTimer:
         self.update_project_list()
         self.start_button.config(state="disabled")
         
-        messagebox.showinfo("New Project", f"Work on: {project[1]} for {minutes:.1f} minutes")
+        messagebox.showinfo(
+            "New Project", 
+            f"Work on: {project[1]} for {minutes:.1f} minutes"
+        )
+
         self.start_timer(minutes)
 
     def run(self):
