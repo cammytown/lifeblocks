@@ -1,0 +1,2 @@
+SQLAlchemy>=2.0.0
+# No additional requirements needed for tkinter as it's part of Python's standard library 

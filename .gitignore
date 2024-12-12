@@ -1,2 +1,23 @@
-projects.db
+# Database files
+blocks.db
+
+# Media files
 youtube-hyoshigi.opus
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual Environment
+.venv/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Local environment
+.env
