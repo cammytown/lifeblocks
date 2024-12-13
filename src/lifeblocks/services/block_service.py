@@ -1,13 +1,45 @@
 from datetime import datetime
 import random
+from dataclasses import dataclass
+from typing import List
 from lifeblocks.models.block import Block
+
+
+@dataclass
+class BlockQueue:
+    blocks: List[Block]
+    total_multiplier: float = 1.0
+
+    def __init__(self, initial_block: Block = None):
+        self.blocks = []
+        self.total_multiplier = 0
+        if initial_block:
+            self.add_block(initial_block)
+
+    def add_block(self, block: Block):
+        self.blocks.append(block)
+        self.total_multiplier += block.length_multiplier
+
+    def is_full(self):
+        return self.total_multiplier >= 1.0
+
+    def has_space_for(self, block: Block):
+        return self.total_multiplier + block.length_multiplier <= 1.0
 
 
 class BlockService:
     def __init__(self, session):
         self.session = session
 
-    def add_block(self, name, weight=1, parent_name=None, max_interval_hours=None):
+    def add_block(
+        self,
+        name,
+        weight=1,
+        parent_name=None,
+        max_interval_hours=None,
+        length_multiplier=1.0,
+        min_duration_minutes=None,
+    ):
         parent_id = None
         if parent_name and parent_name != "None":
             parent = self.session.query(Block).filter_by(name=parent_name).first()
@@ -19,6 +51,8 @@ class BlockService:
             weight=weight,
             parent_id=parent_id,
             max_interval_hours=max_interval_hours,
+            length_multiplier=length_multiplier,
+            min_duration_minutes=min_duration_minutes,
         )
         self.session.add(new_block)
         self.session.commit()
@@ -37,6 +71,8 @@ class BlockService:
         weight=None,
         parent_name=None,
         max_interval_hours=None,
+        length_multiplier=None,
+        min_duration_minutes=None,
     ):
         block = self.session.query(Block).get(block_id)
         if not block:
@@ -57,6 +93,10 @@ class BlockService:
             block.max_interval_hours = (
                 max_interval_hours if max_interval_hours >= 0 else None
             )
+        if length_multiplier is not None:
+            block.length_multiplier = length_multiplier
+        if min_duration_minutes is not None:
+            block.min_duration_minutes = min_duration_minutes
 
         self.session.commit()
         return block
@@ -76,7 +116,7 @@ class BlockService:
             return True
         return False
 
-    def pick_random_block(self):
+    def pick_block_queue(self):
         def get_overdue_blocks(blocks):
             """Return blocks that have exceeded their max interval"""
             now = datetime.now()
@@ -130,8 +170,8 @@ class BlockService:
 
             return weighted_blocks[-1][0]
 
-        def pick_block_recursive(blocks):
-            """Recursively pick a block from the hierarchy"""
+        def pick_block_queue_recursive(blocks):
+            """Pick a block and create a queue, potentially with repeated blocks to fill time"""
             if not blocks:
                 return None
 
@@ -151,18 +191,33 @@ class BlockService:
             children = (
                 self.session.query(Block).filter_by(parent_id=selected_block.id).all()
             )
-            if not children:
-                # If no children, we've reached a leaf node
-                return selected_block
 
-            # Recursively pick from children
-            child_pick = pick_block_recursive(children)
-            # Return the child if we found one, otherwise return the current block
-            return child_pick if child_pick else selected_block
+            if not children:
+                # If no children, we've reached a leaf node - return it as a single-block queue
+                queue = BlockQueue(selected_block)
+                return queue
+
+            # Pick from children and create a queue
+            child_queue = pick_block_queue_recursive(children)
+            if not child_queue:
+                # If no valid child queue, return the current block
+                queue = BlockQueue(selected_block)
+                return queue
+
+            # If the queue isn't full and we have a fractional block, keep picking more blocks
+            while not child_queue.is_full():
+                # Pick another child using the same weighted selection
+                next_block = select_weighted_block(calculate_weighted_blocks(children))
+                if next_block and next_block.length_multiplier < 1.0:
+                    child_queue.add_block(next_block)
+                else:
+                    break  # Stop if we can't find a suitable block
+
+            return child_queue
 
         # Start the recursive selection from root blocks
         root_blocks = self.get_root_blocks()
-        return pick_block_recursive(root_blocks)
+        return pick_block_queue_recursive(root_blocks)
 
     def initialize_default_categories(self, settings_service):
         # Check if this is first run using settings

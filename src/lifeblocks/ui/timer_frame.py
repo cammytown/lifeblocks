@@ -83,6 +83,8 @@ class TimerFrame(ttk.Frame):
         self.block_service = block_service
         self.notification_service = notification_service
         self.history_frame = history_frame
+        self.current_block_queue = None
+        self.current_block_index = 0
         self.setup_ui()
 
     def setup_ui(self):
@@ -171,6 +173,13 @@ class TimerFrame(ttk.Frame):
             )
             self.history_frame.refresh_history()
 
+        if not was_stopped_manually and self.current_block_queue:
+            self.current_block_index += 1
+            if self.current_block_index < len(self.current_block_queue.blocks):
+                base_duration = int(self.duration_var.get())
+                self.start_next_block(base_duration)
+                return
+
         self.reset_timer_ui()
 
     def reset_timer_ui(self):
@@ -178,6 +187,8 @@ class TimerFrame(ttk.Frame):
         self.start_button.configure(text="Start")
         self.pause_button.configure(text="Pause", state="disabled")
         self.block_var.set("")
+        self.current_block_queue = None
+        self.current_block_index = 0
 
     def toggle_pause(self):
         if self.timer_service.timer_active:
@@ -191,30 +202,22 @@ class TimerFrame(ttk.Frame):
     def toggle_timer(self):
         if not self.timer_service.timer_active:
             try:
-                duration = int(self.duration_var.get())
-                if duration <= 0:
+                base_duration = int(self.duration_var.get())
+                if base_duration <= 0:
                     raise ValueError
             except ValueError:
                 messagebox.showerror("Error", "Duration must be a positive integer!")
                 return
 
-            # Select random block and get resistance level
-            block = self.block_service.pick_random_block()
-            if not block:
+            # Select random block queue
+            block_queue = self.block_service.pick_block_queue()
+            if not block_queue or not block_queue.blocks:
                 messagebox.showwarning("Warning", "No blocks available!")
                 return
 
-            resistance_dialog = ResistanceDialog(self, block.name)
-            self.wait_window(resistance_dialog.dialog)
-
-            if resistance_dialog.result is None:
-                return
-
-            self.current_block = block
-            self.block_var.set(block.name)
-            self.timer_service.start_timer(block, duration, resistance_dialog.result)
-            self.start_button.configure(text="Stop")
-            self.pause_button.configure(state="normal")
+            self.current_block_queue = block_queue
+            self.current_block_index = 0
+            self.start_next_block(base_duration)
         else:
             elapsed = self.timer_service.stop_timer()
             if elapsed:
@@ -232,6 +235,40 @@ class TimerFrame(ttk.Frame):
                     self.handle_session_completion(elapsed, was_stopped_manually=True)
                 else:  # No - just reset UI
                     self.reset_timer_ui()
+
+    def start_next_block(self, base_duration):
+        """Start the next block in the queue"""
+        if not self.current_block_queue or self.current_block_index >= len(
+            self.current_block_queue.blocks
+        ):
+            self.reset_timer_ui()
+            return
+
+        block = self.current_block_queue.blocks[self.current_block_index]
+
+        # Show resistance dialog for the next block
+        resistance_dialog = ResistanceDialog(self, block.name)
+        self.wait_window(resistance_dialog.dialog)
+
+        if resistance_dialog.result is None:
+            self.reset_timer_ui()
+            return
+
+        # Calculate adjusted duration based on the block's proportion of the total queue
+        block_proportion = (
+            block.length_multiplier / self.current_block_queue.total_multiplier
+        )
+        adjusted_duration = base_duration * block_proportion
+
+        self.current_block = block
+        self.block_var.set(
+            f"{block.name} ({self.current_block_index + 1}/{len(self.current_block_queue.blocks)})"
+        )
+        self.timer_service.start_timer(
+            block, adjusted_duration, resistance_dialog.result
+        )
+        self.start_button.configure(text="Stop")
+        self.pause_button.configure(state="normal")
 
     def update_timer(self):
         if self.timer_service.timer_active:

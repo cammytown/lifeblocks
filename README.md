@@ -25,7 +25,7 @@ Focused practice and learning:
 - Tool mastery
 
 **Infrastructure & Maintenance** (1x weight)
-Work that enables creative endeavors:
+Work that enables everything else:
 - System organization
 - Tool development
 - Documentation
@@ -54,6 +54,24 @@ Activities pursued primarily for enjoyment:
 - Social games and activities
 - Pure enjoyment music time
 - Straight chillin
+
+
+### Activity Duration and Timing
+
+Activities can specify their duration in two ways:
+- **Fractional Blocks**: Activities can take 0.5x, 1x, 1.5x, or 2x of the base block time
+- **Minimum Duration**: Activities can specify a minimum time in minutes (e.g., 20 minutes)
+
+The system uses whichever is longer to ensure activities get the time they need while remaining flexible to different block lengths.
+
+When a category block contains a half-length activity, the system will select another activity from the same category to fill the remaining time. This maintains focus while providing variety within the category.
+
+
+### Maximum Intervals
+
+Activities can specify a maximum interval between sessions. This ensures important recurring activities (like meals) don't go neglected for too long. When an activity's maximum interval has been exceeded, it receives higher priority in the selection process.
+
+This provides a flexible way to handle necessary recurring activities without rigid scheduling, while ensuring they happen with appropriate frequency.
 
 ### Temporal Management
 

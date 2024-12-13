@@ -31,7 +31,7 @@ class TestBlockPicking(unittest.TestCase):
         num_picks = 10000
         picks = []
         for _ in range(num_picks):
-            picked = self.block_service.pick_random_block()
+            picked = self.block_service.pick_block_queue()
             picks.append(picked.name)
 
         counts = Counter(picks)
@@ -59,7 +59,7 @@ class TestBlockPicking(unittest.TestCase):
         num_picks = 1000
         picks = []
         for _ in range(num_picks):
-            picked = self.block_service.pick_random_block()
+            picked = self.block_service.pick_block_queue()
             picks.append(picked.name)
 
         counts = Counter(picks)
@@ -84,7 +84,7 @@ class TestBlockPicking(unittest.TestCase):
         num_picks = 1000
         picks = []
         for _ in range(num_picks):
-            picked = self.block_service.pick_random_block()
+            picked = self.block_service.pick_block_queue()
             picks.append(picked.name)
 
         counts = Counter(picks)
@@ -118,7 +118,7 @@ class TestBlockPicking(unittest.TestCase):
         num_picks = 100
         picks = []
         for _ in range(num_picks):
-            picked = self.block_service.pick_random_block()
+            picked = self.block_service.pick_block_queue()
             picks.append(picked.name)
 
         counts = Counter(picks)

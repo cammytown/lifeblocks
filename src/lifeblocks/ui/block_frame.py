@@ -40,16 +40,26 @@ class BlockFrame(ttk.Frame):
         # Block Tree with custom style
         self.tree = ttk.Treeview(
             self,
-            columns=("weight", "max_interval", "last_picked"),
+            columns=(
+                "weight",
+                "max_interval",
+                "length_mult",
+                "min_duration",
+                "last_picked",
+            ),
             style="Custom.Treeview",
         )
         self.tree.heading("#0", text="Name", anchor="w")
         self.tree.heading("weight", text="Weight")
         self.tree.heading("max_interval", text="Max Interval")
+        self.tree.heading("length_mult", text="Length Mult")
+        self.tree.heading("min_duration", text="Min Duration")
         self.tree.heading("last_picked", text="Last Picked")
         self.tree.column("#0", anchor="w", minwidth=200)
         self.tree.column("weight", width=70, anchor="center")
         self.tree.column("max_interval", width=100, anchor="center")
+        self.tree.column("length_mult", width=100, anchor="center")
+        self.tree.column("min_duration", width=100, anchor="center")
         self.tree.column("last_picked", width=150, anchor="center")
 
         style = ttk.Style()
@@ -77,6 +87,7 @@ class BlockFrame(ttk.Frame):
 
         self.tree.configure(yscrollcommand=update_scrollbar)
         self.tree.bind("<Configure>", on_tree_configure)
+        self.tree.bind("<Double-1>", lambda e: self.edit_block())
 
         # Edit/Delete buttons in a frame at the bottom
         button_frame = ttk.Frame(self)
@@ -133,12 +144,23 @@ class BlockFrame(ttk.Frame):
                     if block.max_interval_hours is not None
                     else "-"
                 )
+                min_duration = (
+                    f"{block.min_duration_minutes}m"
+                    if block.min_duration_minutes is not None
+                    else "-"
+                )
                 self.tree.insert(
                     "",
                     "end",
                     str(block.id),
                     text=block.name,
-                    values=(block.weight, max_interval, last_picked),
+                    values=(
+                        block.weight,
+                        max_interval,
+                        f"{block.length_multiplier:.2f}x",
+                        min_duration,
+                        last_picked,
+                    ),
                     tags=(tag,),
                 )
                 row_count += 1
@@ -157,12 +179,23 @@ class BlockFrame(ttk.Frame):
                     if block.max_interval_hours is not None
                     else "-"
                 )
+                min_duration = (
+                    f"{block.min_duration_minutes}m"
+                    if block.min_duration_minutes is not None
+                    else "-"
+                )
                 self.tree.insert(
                     str(block.parent_id),
                     "end",
                     str(block.id),
                     text=block.name,
-                    values=(block.weight, max_interval, last_picked),
+                    values=(
+                        block.weight,
+                        max_interval,
+                        f"{block.length_multiplier:.2f}x",
+                        min_duration,
+                        last_picked,
+                    ),
                     tags=(tag,),
                 )
                 row_count += 1

@@ -80,7 +80,7 @@ class TimerService:
         if not self.session_start or not self.current_block:
             return False
 
-        from models.timeblock import TimeBlock
+        from lifeblocks.models.timeblock import TimeBlock
 
         timeblock = TimeBlock(
             block_id=self.current_block.id,
