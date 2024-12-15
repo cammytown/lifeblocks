@@ -245,6 +245,20 @@ class HistoryFrame(ttk.Frame):
             for timeblock in timeblocks:
                 timeblock.deleted = True
                 timeblock.deleted_at = now
+                
+                # Update the block's last_picked to the most recent non-deleted timeblock
+                latest_timeblock = (
+                    self.session.query(TimeBlock)
+                    .filter(
+                        TimeBlock.block_id == timeblock.block_id,
+                        TimeBlock.deleted.is_(False),
+                        TimeBlock.id != timeblock.id
+                    )
+                    .order_by(TimeBlock.start_time.desc())
+                    .first()
+                )
+                
+                timeblock.block.last_picked = latest_timeblock.start_time if latest_timeblock else None
 
             self.session.commit()
             self.refresh_history()

@@ -1,7 +1,7 @@
 from datetime import datetime
 import random
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 from lifeblocks.models.block import Block
 
 
@@ -10,7 +10,7 @@ class BlockQueue:
     blocks: List[Block]
     total_multiplier: float = 1.0
 
-    def __init__(self, initial_block: Block = None):
+    def __init__(self, initial_block: Optional[Block] = None):
         self.blocks = []
         self.total_multiplier = 0
         if initial_block:

@@ -72,9 +72,12 @@ class TimerService:
 
         self.timer_active = False
         current_time = self.pause_start if self.paused else time.time()
-        elapsed_minutes = (current_time - self.session_start.timestamp()) / 60
-
-        return elapsed_minutes
+        total_elapsed_minutes = (current_time - self.session_start.timestamp()) / 60
+        
+        # Subtract pause duration to get actual working time
+        active_elapsed_minutes = total_elapsed_minutes - (self.total_pause_duration / 60)
+        
+        return active_elapsed_minutes
 
     def save_session(self, elapsed_minutes, satisfaction_level=None, notes=None):
         if not self.session_start or not self.current_block:

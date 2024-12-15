@@ -30,7 +30,7 @@ class ResistanceDialog:
         levels = [
             "1 - Eager to begin",
             "2 - Ready to engage",
-            "3 - Mild resistance",
+            "3 - Ambivalent",
             "4 - Strong resistance",
             "5 - Severe aversion",
         ]
