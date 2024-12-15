@@ -5,9 +5,10 @@ from .dialogs.add_block_dialogue import AddBlockDialog
 
 
 class BlockFrame(ttk.Frame):
-    def __init__(self, parent, block_service):
+    def __init__(self, parent, block_service, timer_frame):
         super().__init__(parent)
         self.block_service = block_service
+        self.timer_frame = timer_frame
         self.setup_ui()
 
         # Set minimum height
@@ -92,6 +93,13 @@ class BlockFrame(ttk.Frame):
         # Edit/Delete buttons in a frame at the bottom
         button_frame = ttk.Frame(self)
         button_frame.grid(row=2, column=0, columnspan=2, padx=5, pady=10, sticky="e")
+
+        ttk.Button(
+            button_frame,
+            text="Force",
+            command=self.force_block,
+            style="Secondary.TButton",
+        ).pack(side=tk.LEFT, padx=5)
 
         ttk.Button(
             button_frame,
@@ -228,3 +236,16 @@ class BlockFrame(ttk.Frame):
             block_id = int(selected[0])
             self.block_service.delete_block(block_id)
             self.refresh_blocks()
+
+    def force_block(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Please select a block to force!")
+            return
+
+        block_id = int(selected[0])
+        block_queue = self.block_service.create_single_block_queue(block_id)
+        if block_queue:
+            self.timer_frame.current_block_queue = block_queue
+            self.timer_frame.current_block_index = 0
+            self.timer_frame.start_next_block(self.timer_frame.timer_service.get_default_duration())

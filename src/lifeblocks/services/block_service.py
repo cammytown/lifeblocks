@@ -1,30 +1,8 @@
 from datetime import datetime
 import random
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 from lifeblocks.models.block import Block
-
-
-@dataclass
-class BlockQueue:
-    blocks: List[Block]
-    total_multiplier: float = 1.0
-
-    def __init__(self, initial_block: Optional[Block] = None):
-        self.blocks = []
-        self.total_multiplier = 0
-        if initial_block:
-            self.add_block(initial_block)
-
-    def add_block(self, block: Block):
-        self.blocks.append(block)
-        self.total_multiplier += block.length_multiplier
-
-    def is_full(self):
-        return self.total_multiplier >= 1.0
-
-    def has_space_for(self, block: Block):
-        return self.total_multiplier + block.length_multiplier <= 1.0
+from lifeblocks.models.block_queue import BlockQueue
 
 
 class BlockService:
@@ -248,3 +226,10 @@ class BlockService:
         )
         # Mark first run as complete
         settings_service.set_setting("first_run_complete", "true")
+
+    def create_single_block_queue(self, block_id):
+        """Create a queue with just a single block."""
+        block = self.session.query(Block).get(block_id)
+        if not block:
+            return None
+        return BlockQueue(block)

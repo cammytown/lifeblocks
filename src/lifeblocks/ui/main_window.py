@@ -69,7 +69,6 @@ class MainWindow:
         self.main_container.grid_columnconfigure(0, weight=1)
 
         # Create frames
-        self.block_frame = BlockFrame(self.main_container, self.block_service)
         self.history_frame = HistoryFrame(self.main_container, session)
         self.timer_frame = TimerFrame(
             self.main_container,
@@ -78,6 +77,7 @@ class MainWindow:
             self.notification_service,
             self.history_frame,
         )
+        self.block_frame = BlockFrame(self.main_container, self.block_service, self.timer_frame)
 
         # Timer at the top
         self.timer_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
