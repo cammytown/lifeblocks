@@ -6,8 +6,9 @@ from lifeblocks.models.block_queue import BlockQueue
 
 
 class BlockService:
-    def __init__(self, session):
+    def __init__(self, session, settings_service):
         self.session = session
+        self.settings_service = settings_service
 
     def add_block(
         self,
@@ -125,9 +126,15 @@ class BlockService:
                     continue
 
                 base_weight = block.weight
-                time_weight = (
-                    (now - block.last_picked).days / 7 if block.last_picked else 2
+                hours_until_double = float(self.settings_service.get_setting("hours_until_double_weight", "48"))
+                # Calculate multiplier: if we want weight to double after X hours, then X * multiplier = 1.0
+                time_multiplier = 1.0 / hours_until_double
+                # Calculate how many hours it's been
+                hours_since_picked = (
+                    (now - block.last_picked).total_seconds() / 3600 if block.last_picked else hours_until_double
                 )
+                # time_weight will be 1.0 when hours_since_picked equals hours_until_double
+                time_weight = hours_since_picked * time_multiplier
                 total_weight = base_weight * (1 + time_weight)
                 weighted_blocks.append((block, total_weight))
 
@@ -166,9 +173,7 @@ class BlockService:
                 return None
 
             # Get children of the selected block
-            children = (
-                self.session.query(Block).filter_by(parent_id=selected_block.id).all()
-            )
+            children = self.session.query(Block).filter_by(parent_id=selected_block.id).all()
 
             if not children:
                 # If no children, we've reached a leaf node - return it as a single-block queue
@@ -182,14 +187,18 @@ class BlockService:
                 queue = BlockQueue(selected_block)
                 return queue
 
+            # Check if we should fill fractional queues
+            should_fill_queues = self.settings_service.get_setting("fill_fractional_queues", "true") == "true"
+
             # If the queue isn't full and we have a fractional block, keep picking more blocks
-            while not child_queue.is_full():
-                # Pick another child using the same weighted selection
-                next_block = select_weighted_block(calculate_weighted_blocks(children))
-                if next_block and next_block.length_multiplier < 1.0:
-                    child_queue.add_block(next_block)
-                else:
-                    break  # Stop if we can't find a suitable block
+            if should_fill_queues:
+                while not child_queue.is_full():
+                    # Pick another child using the same weighted selection
+                    next_block = select_weighted_block(calculate_weighted_blocks(children))
+                    if next_block and next_block.length_multiplier < 1.0:
+                        child_queue.add_block(next_block)
+                    else:
+                        break  # Stop if we can't find a suitable block
 
             return child_queue
 
@@ -197,9 +206,9 @@ class BlockService:
         root_blocks = self.get_root_blocks()
         return pick_block_queue_recursive(root_blocks)
 
-    def initialize_default_categories(self, settings_service):
+    def initialize_default_categories(self):
         # Check if this is first run using settings
-        if settings_service.get_setting("first_run_complete") == "true":
+        if self.settings_service.get_setting("first_run_complete") == "true":
             return
 
         default_categories = [
@@ -225,7 +234,7 @@ class BlockService:
             "Cleaning", weight=1, parent_name="Human Condition", max_interval_hours=24
         )
         # Mark first run as complete
-        settings_service.set_setting("first_run_complete", "true")
+        self.settings_service.set_setting("first_run_complete", "true")
 
     def create_single_block_queue(self, block_id):
         """Create a queue with just a single block."""

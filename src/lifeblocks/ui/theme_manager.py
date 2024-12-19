@@ -38,6 +38,18 @@ class ThemeManager:
         style.configure("TCombobox", fieldbackground="#2D2438", foreground="#E8E6F0")
         style.configure("TRadiobutton", background="#1A1625", foreground="#E8E6F0")
 
+        # Checkbutton state mapping
+        style.map(
+            "TCheckbutton",
+            background=[("active", "#1A1625")],
+            foreground=[("active", "#E8E6F0")],
+            indicatorcolor=[
+                ("selected", "#7768E5"),
+                ("!selected", "#2D2438"),
+                ("disabled", "#342B42"),
+            ],
+        )
+
         # Configure Treeview with grid lines and proper spacing
         self._configure_treeview(
             bg="#2D2438",
@@ -92,6 +104,18 @@ class ThemeManager:
         style.configure("TCheckbutton", background="#F5F3F7", foreground="#2D2438")
         style.configure("TCombobox", fieldbackground="#FFFFFF", foreground="#2D2438")
         style.configure("TRadiobutton", background="#F5F3F7", foreground="#2D2438")
+
+        # Checkbutton state mapping
+        style.map(
+            "TCheckbutton",
+            background=[("active", "#F5F3F7")],
+            foreground=[("active", "#2D2438")],
+            indicatorcolor=[
+                ("selected", "#7768E5"),
+                ("!selected", "#FFFFFF"),
+                ("disabled", "#F0EDF4"),
+            ],
+        )
 
         # Configure Treeview with grid lines and proper spacing
         self._configure_treeview(
