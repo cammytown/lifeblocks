@@ -46,14 +46,14 @@ The fundamentals of existing as a human:
 - Physical systems upkeep / exercise
 - Basic life organization
 
-**Play** (0.5x weight)
+<!-- **Play** (0.5x weight)
 Activities pursued primarily for enjoyment:
 - Recreational gaming
 - Casual reading
 - Fun-first creative experiments
 - Social games and activities
 - Pure enjoyment music time
-- Straight chillin
+- Straight chillin -->
 
 
 ### Activity Duration and Timing
@@ -95,7 +95,7 @@ Earn one token per week of consistent system use, with bonus tokens for signific
 Before each work session, note your resistance level (1-5):
 1. Eager to begin
 2. Ready to engage
-3. Mild resistance
+3. Ambivalent
 4. Strong resistance
 5. Severe aversion
 
@@ -129,6 +129,10 @@ The system helps identify:
 The goal isn't perfect adherence to a system, but rather supporting natural creative rhythms while maintaining momentum across multiple projects. Use what works, modify what doesn't, and let the system evolve with your practice.
 
 Remember: This is a tool for enhancing your creative practice, not a taskmaster. It should feel like a helpful friend who knows when to push, when to back off, and when to remind you that you probably need to eat something.
+
+# TODO
+- insert time blocks manually
+
 
 # Credits
 - Most of the code for the software was generated with AI.
