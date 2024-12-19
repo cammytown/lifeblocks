@@ -130,9 +130,13 @@ The goal isn't perfect adherence to a system, but rather supporting natural crea
 
 Remember: This is a tool for enhancing your creative practice, not a taskmaster. It should feel like a helpful friend who knows when to push, when to back off, and when to remind you that you probably need to eat something.
 
+# DEPENDENCIES
+- python 3.12
+- pip
+- tkinter
+
 # TODO
 - insert time blocks manually
-
 
 # Credits
 - Most of the code for the software was generated with AI.

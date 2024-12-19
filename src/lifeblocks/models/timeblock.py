@@ -1,6 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, Enum
 from sqlalchemy.orm import relationship
+import enum
 from lifeblocks.models.base import Base
+
+
+class TimeBlockState(enum.Enum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+    EXPIRED = "expired"
 
 
 class TimeBlock(Base):
@@ -16,6 +25,8 @@ class TimeBlock(Base):
     notes = Column(String)
     deleted = Column(Boolean, default=False)
     deleted_at = Column(DateTime)
+    state = Column(Enum(TimeBlockState), default=TimeBlockState.ACTIVE)
+    pause_start = Column(DateTime, nullable=True)
 
     # Relationships
     block = relationship("Block", back_populates="sessions")
@@ -29,6 +40,8 @@ class TimeBlock(Base):
         satisfaction_level=None,
         pause_duration_minutes=0.0,
         notes=None,
+        state=TimeBlockState.ACTIVE,
+        pause_start=None,
     ):
         self.block_id = block_id
         self.start_time = start_time
@@ -39,3 +52,5 @@ class TimeBlock(Base):
         self.notes = notes
         self.deleted = False
         self.deleted_at = None
+        self.state = state
+        self.pause_start = pause_start

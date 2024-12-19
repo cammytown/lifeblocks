@@ -1,63 +1,117 @@
 import json
 from datetime import datetime
 from typing import Dict, Any, List
+from sqlalchemy import Column, Enum, DateTime, inspect
 from sqlalchemy.orm import Session
+from sqlalchemy.schema import DDL
 from lifeblocks.models import Block, TimeBlock, Settings
-
+from lifeblocks.models.timeblock import TimeBlockState
 
 class DataService:
     CURRENT_VERSION = "1.0"
 
     def __init__(self, session: Session):
         self.session = session
+        self.engine = session.get_bind()
+
+    def ensure_schema_current(self):
+        """Ensures all database schemas are current."""
+        # Check if we're already at current version
+        settings = self.session.query(Settings).filter(Settings.key == "schema_version").first()
+        if settings and settings.value == self.CURRENT_VERSION:
+            return
+
+        inspector = inspect(self.engine)
+        
+        # Check TimeBlock schema
+        columns = {col['name']: col for col in inspector.get_columns(TimeBlock.__tablename__)}
+        
+        # Close any existing transactions
+        self.session.commit()
+        
+        # Execute schema updates in a separate connection
+        with self.engine.begin() as connection:
+            if 'state' not in columns:
+                # Add state column
+                connection.execute(DDL(
+                    f"ALTER TABLE {TimeBlock.__tablename__} "
+                    f"ADD COLUMN state VARCHAR(20) DEFAULT '{TimeBlockState.COMPLETED.value}'"
+                ))
+
+            if 'pause_start' not in columns:
+                # Add pause_start column
+                connection.execute(DDL(
+                    f"ALTER TABLE {TimeBlock.__tablename__} "
+                    "ADD COLUMN pause_start TIMESTAMP NULL"
+                ))
+
+        # Now update data in a new transaction
+        if 'state' not in columns:
+            self.session.query(TimeBlock).update(
+                {TimeBlock.state: TimeBlockState.COMPLETED},
+                synchronize_session=False
+            )
+        
+        # Update schema version
+        if settings:
+            settings.value = self.CURRENT_VERSION
+        else:
+            self.session.add(Settings(key="schema_version", value=self.CURRENT_VERSION))
+        
+        self.session.commit()
 
     def export_data(self) -> Dict[str, Any]:
-        """Export all data from the database with version information."""
+        """Export database to a dictionary."""
         blocks = self.session.query(Block).all()
         timeblocks = self.session.query(TimeBlock).all()
         settings = self.session.query(Settings).all()
 
-        data = {
+        return {
             "version": self.CURRENT_VERSION,
-            "export_date": datetime.now().isoformat(),
             "blocks": [
                 {
-                    "id": p.id,
-                    "name": p.name,
-                    "weight": p.weight,
-                    "parent_id": p.parent_id,
-                    "last_picked": p.last_picked.isoformat() if p.last_picked else None,
-                    "max_interval_minutes": p.max_interval_minutes,
+                    "id": block.id,
+                    "name": block.name,
+                    "weight": block.weight,
+                    "parent_id": block.parent_id,
+                    "max_interval_hours": block.max_interval_hours,
+                    "length_multiplier": block.length_multiplier,
+                    "min_duration_minutes": block.min_duration_minutes,
+                    "last_picked": block.last_picked.isoformat()
+                    if block.last_picked
+                    else None,
                 }
-                for p in blocks
+                for block in blocks
             ],
             "timeblocks": [
                 {
-                    "id": t.id,
-                    "block_id": t.block_id,
-                    "start_time": t.start_time.isoformat(),
-                    "duration_minutes": t.duration_minutes,
-                    "resistance_level": t.resistance_level,
-                    "satisfaction_level": t.satisfaction_level,
-                    "pause_duration_minutes": t.pause_duration_minutes,
-                    "notes": t.notes,
-                    "deleted": t.deleted,
-                    "deleted_at": t.deleted_at.isoformat() if t.deleted_at else None,
+                    "id": tb.id,
+                    "block_id": tb.block_id,
+                    "start_time": tb.start_time.isoformat(),
+                    "duration_minutes": tb.duration_minutes,
+                    "resistance_level": tb.resistance_level,
+                    "satisfaction_level": tb.satisfaction_level,
+                    "pause_duration_minutes": tb.pause_duration_minutes,
+                    "notes": tb.notes,
+                    "deleted": tb.deleted,
+                    "deleted_at": tb.deleted_at.isoformat() if tb.deleted_at else None,
+                    "state": tb.state.value if tb.state else TimeBlockState.COMPLETED.value,
+                    "pause_start": tb.pause_start.isoformat() if tb.pause_start else None,
                 }
-                for t in timeblocks
+                for tb in timeblocks
             ],
-            "settings": [{"key": s.key, "value": s.value} for s in settings],
+            "settings": [
+                {"key": setting.key, "value": setting.value} for setting in settings
+            ],
         }
-        return data
 
     def import_data(self, data: Dict[str, Any]) -> List[str]:
-        """Import data into the database with version checking and migration support.
-        Returns a list of messages about the import process."""
+        """Import data into the database with version checking and migration support."""
         messages = []
 
         # Version check
-        version = data.get("version")
-        if version and version != self.CURRENT_VERSION:
+        version = data.get("version", "1.0")  # Default to 1.0 for old exports
+        if version != self.CURRENT_VERSION:
             messages.append(
                 f"Warning: Importing data from version {version} into version {self.CURRENT_VERSION}"
             )
@@ -76,12 +130,12 @@ class DataService:
                     weight=block_data["weight"],
                     parent_id=block_data["parent_id"],
                     max_interval_hours=block_data.get("max_interval_hours"),
+                    length_multiplier=block_data.get("length_multiplier", 1.0),
+                    min_duration_minutes=block_data.get("min_duration_minutes"),
                 )
                 block.id = block_data["id"]  # Preserve original IDs
-                if block_data["last_picked"]:
-                    block.last_picked = datetime.fromisoformat(
-                        block_data["last_picked"]
-                    )
+                if block_data.get("last_picked"):
+                    block.last_picked = datetime.fromisoformat(block_data["last_picked"])
                 self.session.add(block)
 
             # Import timeblocks
@@ -90,14 +144,18 @@ class DataService:
                     block_id=timeblock_data["block_id"],
                     start_time=datetime.fromisoformat(timeblock_data["start_time"]),
                     duration_minutes=timeblock_data["duration_minutes"],
-                    resistance_level=timeblock_data["resistance_level"],
-                    satisfaction_level=timeblock_data["satisfaction_level"],
-                    pause_duration_minutes=timeblock_data["pause_duration_minutes"],
-                    notes=timeblock_data["notes"],
+                    resistance_level=timeblock_data.get("resistance_level"),
+                    satisfaction_level=timeblock_data.get("satisfaction_level"),
+                    pause_duration_minutes=timeblock_data.get("pause_duration_minutes", 0.0),
+                    notes=timeblock_data.get("notes"),
+                    state=TimeBlockState(timeblock_data.get("state", "completed")),
+                    pause_start=datetime.fromisoformat(timeblock_data["pause_start"])
+                    if timeblock_data.get("pause_start")
+                    else None,
                 )
                 timeblock.id = timeblock_data["id"]  # Preserve original IDs
-                timeblock.deleted = timeblock_data["deleted"]
-                if timeblock_data["deleted_at"]:
+                timeblock.deleted = timeblock_data.get("deleted", False)
+                if timeblock_data.get("deleted_at"):
                     timeblock.deleted_at = datetime.fromisoformat(
                         timeblock_data["deleted_at"]
                     )
@@ -109,12 +167,11 @@ class DataService:
                 self.session.add(setting)
 
             self.session.commit()
-            messages.append("Data import completed successfully")
+            messages.append("Import completed successfully")
 
         except Exception as e:
             self.session.rollback()
             messages.append(f"Error during import: {str(e)}")
-            raise
 
         return messages
 
