@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: LifeBlocks",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "lifeblocks.main",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "preLaunchTask": "Verify Virtual Environment"
+        }
+    ]
+}

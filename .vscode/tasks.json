@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Verify Virtual Environment",
+            "type": "shell",
+            "command": "test -d .venv || (echo 'Virtual environment not found. Please run ./run.sh first.' && exit 1)",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        }
+    ]
+}

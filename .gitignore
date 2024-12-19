@@ -15,7 +15,10 @@ __pycache__/
 .venv/
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 *.swp
 *.swo
 
