@@ -8,7 +8,7 @@ from lifeblocks.models import Block, TimeBlock, Settings
 from lifeblocks.models.timeblock import TimeBlockState
 
 class DataService:
-    CURRENT_VERSION = "1.0"
+    CURRENT_VERSION = "1.1"
 
     def __init__(self, session: Session):
         self.session = session
@@ -43,6 +43,13 @@ class DataService:
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN pause_start TIMESTAMP NULL"
+                ))
+
+            if 'forced' not in columns:
+                # Add forced column
+                connection.execute(DDL(
+                    f"ALTER TABLE {TimeBlock.__tablename__} "
+                    "ADD COLUMN forced BOOLEAN DEFAULT FALSE"
                 ))
 
         # Now update data in a new transaction
@@ -97,6 +104,7 @@ class DataService:
                     "deleted_at": tb.deleted_at.isoformat() if tb.deleted_at else None,
                     "state": tb.state.value if tb.state else TimeBlockState.COMPLETED.value,
                     "pause_start": tb.pause_start.isoformat() if tb.pause_start else None,
+                    "forced": tb.forced,
                 }
                 for tb in timeblocks
             ],
@@ -150,8 +158,9 @@ class DataService:
                     notes=timeblock_data.get("notes"),
                     state=TimeBlockState(timeblock_data.get("state", "completed")),
                     pause_start=datetime.fromisoformat(timeblock_data["pause_start"])
-                    if timeblock_data.get("pause_start")
-                    else None,
+                        if timeblock_data.get("pause_start")
+                        else None,
+                    forced=timeblock_data.get("forced", False),
                 )
                 timeblock.id = timeblock_data["id"]  # Preserve original IDs
                 timeblock.deleted = timeblock_data.get("deleted", False)

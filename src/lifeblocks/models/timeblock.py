@@ -27,6 +27,7 @@ class TimeBlock(Base):
     deleted_at = Column(DateTime)
     state = Column(Enum(TimeBlockState), default=TimeBlockState.ACTIVE)
     pause_start = Column(DateTime, nullable=True)
+    forced = Column(Boolean, default=False)
 
     # Relationships
     block = relationship("Block", back_populates="sessions")
@@ -42,6 +43,7 @@ class TimeBlock(Base):
         notes=None,
         state=TimeBlockState.ACTIVE,
         pause_start=None,
+        forced=False,
     ):
         self.block_id = block_id
         self.start_time = start_time
@@ -54,3 +56,4 @@ class TimeBlock(Base):
         self.deleted_at = None
         self.state = state
         self.pause_start = pause_start
+        self.forced = forced

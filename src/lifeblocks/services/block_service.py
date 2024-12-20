@@ -241,4 +241,6 @@ class BlockService:
         block = self.session.query(Block).get(block_id)
         if not block:
             return None
-        return BlockQueue(block)
+        queue = BlockQueue(block)
+        queue.was_force_started = True  # Mark this queue as force-started through the UI
+        return queue

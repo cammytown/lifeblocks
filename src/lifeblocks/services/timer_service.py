@@ -62,7 +62,7 @@ class TimerService:
     def set_default_duration(self, duration):
         self.settings_service.set_setting("default_duration", str(duration))
 
-    def start_timer(self, block, minutes, resistance_level):
+    def start_timer(self, block, minutes, resistance_level, forced=False):
         self.timer_active = True
         self.session_start = datetime.now()
         self.session_duration = minutes
@@ -79,7 +79,8 @@ class TimerService:
             start_time=self.session_start,
             duration_minutes=minutes,
             resistance_level=resistance_level,
-            state=TimeBlockState.ACTIVE
+            state=TimeBlockState.ACTIVE,
+            forced=forced
         )
         self.session.add(self.active_timeblock)
         self.session.commit()

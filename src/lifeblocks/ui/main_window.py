@@ -20,11 +20,11 @@ class MainWindow:
         self.root.minsize(800, 800)
 
         # Initialize services
+        self.data_service = DataService(session)
         self.settings_service = SettingsService(session)
         self.block_service = BlockService(session, self.settings_service)
         self.timer_service = TimerService(session, self.settings_service)
         self.notification_service = NotificationService(self.settings_service)
-        self.data_service = DataService(session)
 
         # Initialize default categories if needed
         self.block_service.initialize_default_categories()

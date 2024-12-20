@@ -85,7 +85,21 @@ class TimerFrame(ttk.Frame):
         self.history_frame = history_frame
         self.current_block_queue = None
         self.current_block_index = 0
+        self.current_block = None
         self.setup_ui()
+        
+        # Initialize UI state based on timer service
+        if self.timer_service.timer_active:
+            self.current_block = self.timer_service.current_block
+            # Create a single-block queue for the active block
+            from lifeblocks.models.block_queue import BlockQueue
+            self.current_block_queue = BlockQueue(self.current_block)
+            self.current_block_index = 0
+            self.block_var.set(f"{self.current_block.name} (1/1)")
+            self.start_button.configure(text="Stop")
+            self.pause_button.configure(state="normal")
+            if self.timer_service.paused:
+                self.pause_button.configure(text="Resume")
 
     def setup_ui(self):
         self.configure(padding="20")
@@ -254,18 +268,24 @@ class TimerFrame(ttk.Frame):
             self.reset_timer_ui()
             return
 
-        # Calculate adjusted duration based on the block's proportion of the total queue
-        block_proportion = (
-            block.length_multiplier / self.current_block_queue.total_multiplier
-        )
-        adjusted_duration = base_duration * block_proportion
+        # Check if this block was force-started through the UI
+        was_force_started = hasattr(self.current_block_queue, 'was_force_started') and self.current_block_queue.was_force_started
+
+        # For force-started blocks, use length_multiplier directly
+        if was_force_started:
+            adjusted_duration = base_duration * block.length_multiplier
+        else:
+            # For normal queues (including naturally occurring single-block queues),
+            # calculate adjusted duration based on the block's proportion of the total queue
+            block_proportion = block.length_multiplier / self.current_block_queue.total_multiplier
+            adjusted_duration = base_duration * block_proportion
 
         self.current_block = block
         self.block_var.set(
             f"{block.name} ({self.current_block_index + 1}/{len(self.current_block_queue.blocks)})"
         )
         self.timer_service.start_timer(
-            block, adjusted_duration, resistance_dialog.result
+            block, adjusted_duration, resistance_dialog.result, forced=was_force_started
         )
         self.start_button.configure(text="Stop")
         self.pause_button.configure(state="normal")
@@ -274,7 +294,7 @@ class TimerFrame(ttk.Frame):
         if self.timer_service.timer_active:
             minutes, seconds, is_finished = self.timer_service.get_remaining_time()
 
-            if is_finished:
+            if is_finished and self.current_block:
                 self.notification_service.alert_time_up(self.current_block.name)
                 elapsed = self.timer_service.stop_timer()
                 self.handle_session_completion(elapsed)
