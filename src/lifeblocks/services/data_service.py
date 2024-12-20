@@ -48,7 +48,7 @@ class DataService:
         # Now update data in a new transaction
         if 'state' not in columns:
             self.session.query(TimeBlock).update(
-                {TimeBlock.state: TimeBlockState.COMPLETED},
+                {"state": TimeBlockState.COMPLETED},
                 synchronize_session=False
             )
         
