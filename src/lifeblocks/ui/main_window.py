@@ -6,6 +6,7 @@ from .history_frame import HistoryFrame
 from .timer_frame import TimerFrame
 from .dialogs.data_dialog import DataDialog
 from .dialogs.settings_dialog import SettingsDialog
+from .dialogs.hotkeys_dialog import HotkeysDialog
 from lifeblocks.services.block_service import BlockService
 from lifeblocks.services.timer_service import TimerService
 from lifeblocks.services.notification_service import NotificationService
@@ -20,14 +21,11 @@ class MainWindow:
         self.root.minsize(800, 800)
 
         # Initialize services
-        self.data_service = DataService(session)
         self.settings_service = SettingsService(session)
         self.block_service = BlockService(session, self.settings_service)
         self.timer_service = TimerService(session, self.settings_service)
         self.notification_service = NotificationService(self.settings_service)
-
-        # Initialize default categories if needed
-        self.block_service.initialize_default_categories()
+        self.data_service = DataService(session)
 
         # Initialize theme manager
         self.theme_manager = ThemeManager(self.root)
@@ -64,6 +62,16 @@ class MainWindow:
         )
         data_button.pack(side=tk.LEFT, padx=(0, 5))
 
+        # Hotkeys button
+        hotkeys_button = ttk.Button(
+            buttons_frame,
+            text="⌨️",
+            width=2,
+            command=self.show_hotkeys_dialog,
+            style="Small.TButton",
+        )
+        hotkeys_button.pack(side=tk.LEFT, padx=(0, 5))
+
         # Theme toggle button
         theme_button = ttk.Button(
             buttons_frame,
@@ -99,14 +107,50 @@ class MainWindow:
         # History section (40% of space)
         self.history_frame.grid(row=2, column=0, sticky="nsew")
 
+        # Set up hotkey bindings
+        self.setup_hotkeys()
+
         # Apply initial theme
         self.theme_manager.apply_theme()
-
-    def show_data_dialog(self):
-        DataDialog(self.root, self.data_service)
 
     def show_settings_dialog(self):
         SettingsDialog(self.root, self.settings_service)
 
+    def show_data_dialog(self):
+        DataDialog(self.root, self.data_service)
+
+    def show_hotkeys_dialog(self):
+        HotkeysDialog(self.root, self.settings_service)
+
+    def setup_hotkeys(self):
+        def handle_hotkey(event):
+            # Convert event state and keysym to our hotkey format
+            parts = []
+            if event.state & 0x4:  # Control
+                parts.append('Control')
+            if event.state & 0x8:  # Alt
+                parts.append('Alt')
+            if event.state & 0x1:  # Shift
+                parts.append('Shift')
+            if event.keysym not in ('Control_L', 'Control_R', 'Alt_L', 'Alt_R', 'Shift_L', 'Shift_R'):
+                parts.append(event.keysym)
+            hotkey = '-'.join(parts)
+
+            # Check if it matches any of our hotkeys
+            start_hotkey = self.settings_service.get_setting("hotkey_start", "Control-s")
+            pause_hotkey = self.settings_service.get_setting("hotkey_pause", "Pause")
+
+            if hotkey == start_hotkey:
+                self.timer_frame.toggle_timer()
+                return "break"
+            elif hotkey == pause_hotkey:
+                self.timer_frame.toggle_pause()
+                return "break"
+
+        # Bind to root window to catch all events
+        self.root.bind('<Key>', handle_hotkey)
+
     def run(self):
+        # Initialize default categories if needed
+        self.block_service.initialize_default_categories()
         self.root.mainloop()
