@@ -54,8 +54,9 @@ class HistoryFrame(ttk.Frame):
 
         # State filter
         ttk.Label(filter_frame, text="State:").pack(side="left", padx=(0, 10))
-        self.state_var = tk.StringVar(value="All States")
-        state_values = ["All States"] + [state.value for state in TimeBlockState]
+        self.state_var = tk.StringVar(value="Current & Completed")
+        excluded_states = [TimeBlockState.ABANDONED, TimeBlockState.EXPIRED, TimeBlockState.CANCELLED_ON_COMPLETE]
+        state_values = ["Current & Completed", "All States"] + [state.value for state in TimeBlockState]
         state_combo = ttk.Combobox(
             filter_frame,
             textvariable=self.state_var,
@@ -215,8 +216,11 @@ class HistoryFrame(ttk.Frame):
             .filter(TimeBlock.deleted.is_(False))
         )
 
-        # Add state filter if not "All States"
-        if state_value != "All States":
+        # Add state filter
+        if state_value == "Current & Completed":
+            excluded_states = [TimeBlockState.ABANDONED, TimeBlockState.EXPIRED, TimeBlockState.CANCELLED_ON_COMPLETE]
+            query = query.filter(~TimeBlock.state.in_(excluded_states))
+        elif state_value != "All States":
             query = query.filter(TimeBlock.state == TimeBlockState(state_value))
 
         if filter_value == "Yesterday":
