@@ -301,8 +301,8 @@ class TimerFrame(ttk.Frame):
             minutes, seconds, is_finished = self.timer_service.get_remaining_time()
 
             if is_finished and self.current_block:
-                self.notification_service.alert_time_up(self.current_block.name)
                 elapsed = self.timer_service.stop_timer()
+                self.notification_service.alert_time_up(self.current_block.name)
                 self.handle_session_completion(elapsed)
             else:
                 self.time_label.configure(text=f"{minutes:02d}:{seconds:02d}")

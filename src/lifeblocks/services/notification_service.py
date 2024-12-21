@@ -1,6 +1,7 @@
 import os
 import subprocess
 from tkinter import messagebox
+import threading
 
 
 class NotificationService:
@@ -66,40 +67,42 @@ class NotificationService:
         # Try paplay first (PulseAudio)
         try:
             print("Attempting to play with paplay...")
-            result = subprocess.run(["paplay", sound_path], check=True, capture_output=True, text=True)
-            print(f"paplay output: {result.stdout}")
-            if result.stderr:
-                print(f"paplay stderr: {result.stderr}")
+            process = subprocess.Popen(["paplay", sound_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Start a non-blocking read of stderr in a separate thread
+            def log_output():
+                stdout, stderr = process.communicate()
+                if stdout:
+                    print(f"paplay stdout: {stdout}")
+                if stderr:
+                    print(f"paplay stderr: {stderr}")
+            threading.Thread(target=log_output, daemon=True).start()
             success = True
         except FileNotFoundError:
             print("paplay not found")
             error_msg = "paplay not found, "
         except subprocess.CalledProcessError as e:
             print(f"paplay error: {str(e)}")
-            if e.stdout:
-                print(f"paplay stdout: {e.stdout}")
-            if e.stderr:
-                print(f"paplay stderr: {e.stderr}")
             error_msg = f"paplay error: {str(e)}, "
 
         # If paplay failed, try aplay (ALSA)
         if not success:
             try:
                 print("Attempting to play with aplay...")
-                result = subprocess.run(["aplay", sound_path], check=True, capture_output=True, text=True)
-                print(f"aplay output: {result.stdout}")
-                if result.stderr:
-                    print(f"aplay stderr: {result.stderr}")
+                process = subprocess.Popen(["aplay", sound_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                # Start a non-blocking read of stderr in a separate thread
+                def log_output():
+                    stdout, stderr = process.communicate()
+                    if stdout:
+                        print(f"aplay stdout: {stdout}")
+                    if stderr:
+                        print(f"aplay stderr: {stderr}")
+                threading.Thread(target=log_output, daemon=True).start()
                 success = True
             except FileNotFoundError:
                 print("aplay not found")
                 error_msg += "aplay not found"
             except subprocess.CalledProcessError as e:
                 print(f"aplay error: {str(e)}")
-                if e.stdout:
-                    print(f"aplay stdout: {e.stdout}")
-                if e.stderr:
-                    print(f"aplay stderr: {e.stderr}")
                 error_msg += f"aplay error: {str(e)}"
 
         if not success:
