@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 
 class CompletionDialog:
@@ -54,6 +54,13 @@ class CompletionDialog:
         btn_frame.pack(fill="x")
 
         ttk.Button(
+            btn_frame,
+            text="Cancel",
+            style="Secondary.TButton",
+            command=self._cancel
+        ).pack(side="right", padx=5)
+
+        ttk.Button(
             btn_frame, text="Save", style="Accent.TButton", command=self._save
         ).pack(side="right", padx=5)
 
@@ -79,3 +86,13 @@ class CompletionDialog:
             "notes": self.notes_text.get("1.0", "end-1c"),
         }
         self.dialog.destroy()
+
+    def _cancel(self):
+        response = messagebox.askyesno(
+            "Cancel TimeBlock",
+            "Are you sure you want to cancel this timeblock?\nIt will be marked as cancelled and not saved to history.",
+            icon="warning"
+        )
+        if response:
+            self.result = {"save": False}
+            self.dialog.destroy()

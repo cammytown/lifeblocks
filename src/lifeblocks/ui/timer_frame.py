@@ -4,6 +4,7 @@ import time
 
 from lifeblocks.ui.dialogs.resistance_dialog import ResistanceDialog
 from lifeblocks.ui.dialogs.completion_dialog import CompletionDialog
+from lifeblocks.models.timeblock import TimeBlockState
 
 
 class DurationDialog:
@@ -180,12 +181,17 @@ class TimerFrame(ttk.Frame):
         self.wait_window(completion_dialog.dialog)
 
         if completion_dialog.result:
-            self.timer_service.save_session(
-                elapsed,
-                satisfaction_level=completion_dialog.result["satisfaction"],
-                notes=completion_dialog.result["notes"],
-            )
-            self.history_frame.refresh_history()
+            if completion_dialog.result.get("save", True):
+                self.timer_service.save_session(
+                    elapsed,
+                    satisfaction_level=completion_dialog.result["satisfaction"],
+                    notes=completion_dialog.result["notes"],
+                )
+                self.history_frame.refresh_history()
+            else:
+                # Mark the timeblock as cancelled without saving satisfaction/notes
+                self.timer_service.active_timeblock.state = TimeBlockState.CANCELLED_ON_COMPLETE
+                self.timer_service.session.commit()
 
         if not was_stopped_manually and self.current_block_queue:
             self.current_block_index += 1

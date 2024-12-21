@@ -9,6 +9,7 @@ class TimeBlockState(enum.Enum):
     PAUSED = "paused"
     COMPLETED = "completed"
     ABANDONED = "abandoned"
+    CANCELLED_ON_COMPLETE = "cancelled_on_complete"
     EXPIRED = "expired"
 
 

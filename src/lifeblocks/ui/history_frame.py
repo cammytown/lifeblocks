@@ -2,6 +2,7 @@ from tkinter import ttk
 import tkinter as tk
 from datetime import datetime, timedelta
 from lifeblocks.models import TimeBlock, Block
+from lifeblocks.models.timeblock import TimeBlockState
 import tkinter.messagebox as messagebox
 from sqlalchemy import tuple_
 
@@ -34,11 +35,12 @@ class HistoryFrame(ttk.Frame):
             side="left"
         )
 
-        # Filter dropdown
+        # Filter frame
         filter_frame = ttk.Frame(header_frame)
         filter_frame.pack(side="right")
 
-        ttk.Label(filter_frame, text="Show:").pack(side="left", padx=(0, 10))
+        # Time filter
+        ttk.Label(filter_frame, text="Time:").pack(side="left", padx=(0, 10))
         self.filter_var = tk.StringVar(value="Today")
         filter_combo = ttk.Combobox(
             filter_frame,
@@ -49,6 +51,20 @@ class HistoryFrame(ttk.Frame):
         )
         filter_combo.pack(side="left", padx=(0, 20))
         filter_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_history())
+
+        # State filter
+        ttk.Label(filter_frame, text="State:").pack(side="left", padx=(0, 10))
+        self.state_var = tk.StringVar(value="All States")
+        state_values = ["All States"] + [state.value for state in TimeBlockState]
+        state_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.state_var,
+            values=state_values,
+            state="readonly",
+            width=15,
+        )
+        state_combo.pack(side="left", padx=(0, 20))
+        state_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_history())
 
         # Delete button
         delete_button = ttk.Button(
@@ -70,6 +86,7 @@ class HistoryFrame(ttk.Frame):
                 "resistance",
                 "satisfaction",
                 "notes",
+                "state",
                 "id",
             ),
             style="Custom.Treeview",
@@ -82,6 +99,7 @@ class HistoryFrame(ttk.Frame):
         self.tree.heading("resistance", text="Resistance", anchor="w")
         self.tree.heading("satisfaction", text="Satisfaction", anchor="w")
         self.tree.heading("notes", text="Notes", anchor="w")
+        self.tree.heading("state", text="State", anchor="w")
 
         # Set column properties with alignment
         self.tree.column("block", width=150, anchor="w")
@@ -91,6 +109,7 @@ class HistoryFrame(ttk.Frame):
         self.tree.column("resistance", width=100, anchor="w")
         self.tree.column("satisfaction", width=100, anchor="w")
         self.tree.column("notes", width=200, anchor="w")
+        self.tree.column("state", width=100, anchor="w")
         self.tree.column("id", width=0, stretch=False)  # Hidden column
 
         # Hide the id column
@@ -164,6 +183,7 @@ class HistoryFrame(ttk.Frame):
                     resistance_text,
                     satisfaction_text,
                     block.notes or "",
+                    block.state.value if block.state else "-",
                     block.id,
                 ),
                 tags=(tag,),
@@ -172,6 +192,7 @@ class HistoryFrame(ttk.Frame):
 
     def _get_filtered_blocks(self):
         filter_value = self.filter_var.get()
+        state_value = self.state_var.get()
         now = datetime.now()
 
         if filter_value == "Today":
@@ -193,6 +214,10 @@ class HistoryFrame(ttk.Frame):
             .join(Block)
             .filter(TimeBlock.deleted.is_(False))
         )
+
+        # Add state filter if not "All States"
+        if state_value != "All States":
+            query = query.filter(TimeBlock.state == TimeBlockState(state_value))
 
         if filter_value == "Yesterday":
             query = query.filter(
