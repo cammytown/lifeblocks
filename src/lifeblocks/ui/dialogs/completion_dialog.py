@@ -9,7 +9,7 @@ class CompletionDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Session Complete")
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.resizable(False, False)  # Lock the size
 
         main_frame = ttk.Frame(self.dialog, padding="20", style="Card.TFrame")
         main_frame.pack(fill="both", expand=True)
@@ -64,20 +64,29 @@ class CompletionDialog:
             btn_frame, text="Save", style="Accent.TButton", command=self._save
         ).pack(side="right", padx=5)
 
-        # Center dialog
+        # Wait for the window to be visible and sized
         self.dialog.update_idletasks()
-        x = (
-            parent.winfo_rootx()
-            + (parent.winfo_width() - self.dialog.winfo_width()) // 2
-        )
-        y = (
-            parent.winfo_rooty()
-            + (parent.winfo_height() - self.dialog.winfo_height()) // 2
-        )
+        self.dialog.wait_visibility()
+
+        # Get the size that fits the content
+        dialog_width = self.dialog.winfo_reqwidth()
+        dialog_height = self.dialog.winfo_reqheight()
+
+        # Calculate position
+        screen_width = parent.winfo_screenwidth()
+        screen_height = parent.winfo_screenheight()
+        x = (screen_width - dialog_width) // 2
+        y = (screen_height - dialog_height) // 3  # Position slightly above center
+
+        # Set the final position and size
         self.dialog.geometry(f"+{x}+{y}")
+        
+        # Finally, set the grab
+        self.dialog.grab_set()
 
     def _save(self):
         if not self.satisfaction_var.get():
+            messagebox.showwarning("Warning", "Please rate your satisfaction level.")
             return
 
         self.result = {
