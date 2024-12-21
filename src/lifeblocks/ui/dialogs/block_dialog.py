@@ -1,87 +1,65 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from .base_dialog import BaseDialog
 
 
-class BlockDialog:
+class BlockDialog(BaseDialog):
     def __init__(self, parent, block_service, title):
-        self.result = False
         self.block_service = block_service
-        self.parent = parent
-
-        self.dialog = tk.Toplevel(parent)
-        self.dialog.title(title)
-        self.dialog.transient(parent)
-
-        # Center dialog
-        x = parent.winfo_rootx() + parent.winfo_width() // 2 - 200
-        y = parent.winfo_rooty() + parent.winfo_height() // 2 - 100
-        self.dialog.geometry(f"+{x}+{y}")
-
-        self.setup_ui()
-
-        # After UI is set up, prevent resizing smaller than needed
-        self.dialog.update_idletasks()
-        self.dialog.minsize(self.dialog.winfo_width(), self.dialog.winfo_height())
+        super().__init__(parent, title)
 
         # Bind return key to save
         self.name_entry.bind("<Return>", lambda event: self.save())
 
-        # Wait for the window to be visible before grabbing
-        self.dialog.wait_visibility()
-        self.dialog.grab_set()
-
     def setup_ui(self):
-        main_frame = ttk.Frame(self.dialog, padding="20")
-        main_frame.pack(fill="both", expand=True)
-
         # Name Entry
-        ttk.Label(main_frame, text="Name:").grid(
+        ttk.Label(self.main_frame, text="Name:").grid(
             row=0, column=0, padx=5, pady=5, sticky="e"
         )
-        self.name_entry = ttk.Entry(main_frame, width=30)
+        self.name_entry = ttk.Entry(self.main_frame, width=30)
         self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Weight Entry
-        ttk.Label(main_frame, text="Weight:").grid(
+        ttk.Label(self.main_frame, text="Weight:").grid(
             row=1, column=0, padx=5, pady=5, sticky="e"
         )
-        self.weight_entry = ttk.Entry(main_frame, width=10)
+        self.weight_entry = ttk.Entry(self.main_frame, width=10)
         self.weight_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
         # Max Interval Entry
-        ttk.Label(main_frame, text="Max Interval (hours):").grid(
+        ttk.Label(self.main_frame, text="Max Interval (hours):").grid(
             row=2, column=0, padx=5, pady=5, sticky="e"
         )
-        self.interval_entry = ttk.Entry(main_frame, width=10)
+        self.interval_entry = ttk.Entry(self.main_frame, width=10)
         self.interval_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
         # Length Multiplier Entry
-        ttk.Label(main_frame, text="Length Multiplier:").grid(
+        ttk.Label(self.main_frame, text="Length Multiplier:").grid(
             row=3, column=0, padx=5, pady=5, sticky="e"
         )
-        self.length_multiplier_entry = ttk.Entry(main_frame, width=10)
+        self.length_multiplier_entry = ttk.Entry(self.main_frame, width=10)
         self.length_multiplier_entry.insert(0, "1.0")
         self.length_multiplier_entry.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
         # Min Duration Entry
-        ttk.Label(main_frame, text="Min Duration (minutes):").grid(
+        ttk.Label(self.main_frame, text="Min Duration (minutes):").grid(
             row=4, column=0, padx=5, pady=5, sticky="e"
         )
-        self.min_duration_entry = ttk.Entry(main_frame, width=10)
+        self.min_duration_entry = ttk.Entry(self.main_frame, width=10)
         self.min_duration_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         # Parent Selection
-        ttk.Label(main_frame, text="Parent:").grid(
+        ttk.Label(self.main_frame, text="Parent:").grid(
             row=5, column=0, padx=5, pady=5, sticky="e"
         )
-        self.parent_combo = ttk.Combobox(main_frame, state="readonly", width=28)
+        self.parent_combo = ttk.Combobox(self.main_frame, state="readonly", width=28)
         self.parent_combo.grid(row=5, column=1, padx=5, pady=5, sticky="ew")
 
         # Configure grid column weights
-        main_frame.grid_columnconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(1, weight=1)
 
         # Buttons
-        button_frame = ttk.Frame(main_frame)
+        button_frame = ttk.Frame(self.main_frame)
         button_frame.grid(row=6, column=0, columnspan=2, pady=(20, 0))
 
         ttk.Button(
@@ -90,7 +68,7 @@ class BlockDialog:
             style="Accent.TButton",
             command=self.save,
         ).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(
+        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(
             side=tk.LEFT, padx=5
         )
 
@@ -161,6 +139,3 @@ class BlockDialog:
 
     def save(self):
         pass
-
-    def cancel(self):
-        self.dialog.destroy()

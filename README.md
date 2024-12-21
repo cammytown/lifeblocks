@@ -136,7 +136,9 @@ Remember: This is a tool for enhancing your creative practice, not a taskmaster.
 - tkinter
 
 # TODO
-- insert time blocks manually
+- insert time blocks into history manually
+- edit history
+- improve block selection algorithm so it reduces weight of blocks not just based on recent usage, but also based on the number of times they've been selected recently
 
-# Credits
-- Most of the code for the software was generated with AI.
+# CREDITS
+- Most of the code for the software was generated with AI, including most of this README (after some prompting and wrestling)
