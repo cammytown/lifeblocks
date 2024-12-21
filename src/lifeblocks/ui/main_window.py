@@ -96,7 +96,12 @@ class MainWindow:
             self.notification_service,
             self.history_frame,
         )
-        self.block_frame = BlockFrame(self.main_container, self.block_service, self.timer_frame)
+        self.block_frame = BlockFrame(
+            self.main_container,
+            self.block_service,
+            self.timer_frame,
+            self.history_frame
+        )
 
         # Timer at the top
         self.timer_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))

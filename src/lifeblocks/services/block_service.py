@@ -242,5 +242,4 @@ class BlockService:
         if not block:
             return None
         queue = BlockQueue(block)
-        queue.was_force_started = True  # Mark this queue as force-started through the UI
         return queue

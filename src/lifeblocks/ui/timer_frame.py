@@ -87,6 +87,10 @@ class TimerFrame(ttk.Frame):
         self.current_block_queue = None
         self.current_block_index = 0
         self.current_block = None
+        
+        # Set up state change callback
+        self.timer_service.set_state_change_callback(self.history_frame.refresh_history)
+        
         self.setup_ui()
         
         # Initialize UI state based on timer service
@@ -187,7 +191,6 @@ class TimerFrame(ttk.Frame):
                     satisfaction_level=completion_dialog.result["satisfaction"],
                     notes=completion_dialog.result["notes"],
                 )
-                self.history_frame.refresh_history()
             else:
                 # Mark the timeblock as cancelled without saving satisfaction/notes
                 self.timer_service.active_timeblock.state = TimeBlockState.CANCELLED_ON_COMPLETE

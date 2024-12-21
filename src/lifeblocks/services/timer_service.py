@@ -18,9 +18,19 @@ class TimerService:
         self.pause_start = 0.0
         self.total_pause_duration = 0
         self.active_timeblock = None
+        self.on_state_change = None  # Callback for state changes
         
         # Check for any incomplete timeblocks and resume them
         self._restore_active_timer()
+
+    def set_state_change_callback(self, callback):
+        """Set a callback to be called whenever the timer state changes."""
+        self.on_state_change = callback
+
+    def _notify_state_change(self):
+        """Notify observers of state change."""
+        if self.on_state_change:
+            self.on_state_change()
 
     def _restore_active_timer(self):
         """Restore timer state from any incomplete timeblock"""
@@ -84,6 +94,7 @@ class TimerService:
         )
         self.session.add(self.active_timeblock)
         self.session.commit()
+        self._notify_state_change()
         return True
 
     def pause_timer(self):
@@ -94,6 +105,7 @@ class TimerService:
                 self.active_timeblock.state = TimeBlockState.PAUSED
                 self.active_timeblock.pause_start = datetime.now()
                 self.session.commit()
+                self._notify_state_change()
             return True
         return False
 
@@ -107,6 +119,7 @@ class TimerService:
                 self.active_timeblock.pause_duration_minutes = self.total_pause_duration / 60
                 self.active_timeblock.pause_start = None
                 self.session.commit()
+                self._notify_state_change()
             self.paused = False
             self.pause_start = 0.0
             return True
@@ -145,6 +158,7 @@ class TimerService:
         if self.active_timeblock:
             self.active_timeblock.state = TimeBlockState.ABANDONED
             self.session.commit()
+            self._notify_state_change()
         
         return active_elapsed_minutes
 
@@ -178,5 +192,6 @@ class TimerService:
         # Update block's last_picked time
         self.current_block.last_picked = self.session_start
         self.session.commit()
+        self._notify_state_change()
 
         return True

@@ -5,10 +5,11 @@ from .dialogs.add_block_dialogue import AddBlockDialog
 
 
 class BlockFrame(ttk.Frame):
-    def __init__(self, parent, block_service, timer_frame):
+    def __init__(self, parent, block_service, timer_frame, history_frame):
         super().__init__(parent)
         self.block_service = block_service
         self.timer_frame = timer_frame
+        self.history_frame = history_frame
         self.setup_ui()
 
         # Set minimum height
@@ -222,6 +223,7 @@ class BlockFrame(ttk.Frame):
         dialog = EditBlockDialog(self, self.block_service, block_id)
         if dialog.result:
             self.refresh_blocks()
+            self.history_frame.refresh_history()
 
     def delete_block(self):
         selected = self.tree.selection()
@@ -246,6 +248,8 @@ class BlockFrame(ttk.Frame):
         block_id = int(selected[0])
         block_queue = self.block_service.create_single_block_queue(block_id)
         if block_queue:
+            block_queue.was_force_started = True
             self.timer_frame.current_block_queue = block_queue
             self.timer_frame.current_block_index = 0
             self.timer_frame.start_next_block(self.timer_frame.timer_service.get_default_duration())
+            self.history_frame.refresh_history()
