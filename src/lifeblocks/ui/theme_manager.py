@@ -87,6 +87,32 @@ class ThemeManager:
             foreground=[("active", "#E8E6F0")],
         )
 
+        # Button hover states
+        style.map(
+            "TButton",
+            background=[
+                ("active", "#443856"),  # Normal hover purple
+                ("disabled", "#1A1822")  # Very dark purple for disabled
+            ],
+            foreground=[
+                ("active", "#FFFFFF"),  # White text on hover
+                ("disabled", "#444444")  # Dark gray for disabled text
+            ],
+        )
+
+        # Secondary button hover states
+        style.map(
+            "Secondary.TButton",
+            background=[
+                ("active", "#443856"),  # Normal hover purple
+                ("disabled", "#1A1822")  # Very dark purple for disabled
+            ],
+            foreground=[
+                ("active", "#FFFFFF"),  # White text on hover
+                ("disabled", "#444444")  # Dark gray for disabled text
+            ],
+        )
+
     def _apply_light_theme(self):
         self.root.configure(bg="#F5F3F7")
         style = ttk.Style()
@@ -154,6 +180,32 @@ class ThemeManager:
             foreground=[("active", "#2D2438")],
         )
 
+        # Button hover states
+        style.map(
+            "TButton",
+            background=[
+                ("active", "#D8D4E3"),  # Normal light hover
+                ("disabled", "#CCCCCC")  # Light gray for disabled
+            ],
+            foreground=[
+                ("active", "#2D2438"),  # Normal text on hover
+                ("disabled", "#888888")  # Medium gray for disabled text
+            ],
+        )
+
+        # Secondary button hover states
+        style.map(
+            "Secondary.TButton",
+            background=[
+                ("active", "#E8E6F0"),  # Normal light hover
+                ("disabled", "#CCCCCC")  # Light gray for disabled
+            ],
+            foreground=[
+                ("active", "#2D2438"),  # Normal text on hover
+                ("disabled", "#888888")  # Medium gray for disabled text
+            ],
+        )
+
     def _configure_treeview(
         self, bg, fg, selectbg, selectfg, headerbg, headerfg, headeractivebg, gridcolor
     ):
@@ -189,16 +241,5 @@ class ThemeManager:
     def _apply_common_styles(self):
         style = ttk.Style()
 
-        # Button hover states
-        style.map(
-            "TButton",
-            background=[("active", "#443856" if self.is_night_mode else "#D8D4E3")],
-            foreground=[("active", "#FFFFFF" if self.is_night_mode else "#2D2438")],
-        )
-
-        # Secondary button hover states
-        style.map(
-            "Secondary.TButton",
-            background=[("active", "#443856" if self.is_night_mode else "#E8E6F0")],
-            foreground=[("active", "#FFFFFF" if self.is_night_mode else "#2D2438")],
-        )
+        # Remove the duplicate button style mappings from here since they're now handled
+        # in the individual theme methods
