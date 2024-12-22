@@ -103,6 +103,7 @@ class TimerFrame(ttk.Frame):
             self.block_var.set(f"{self.current_block.name} (1/1)")
             self.start_button.configure(text="Stop")
             self.pause_button.configure(state="normal")
+            self.restart_button.configure(state="normal")
             if self.timer_service.paused:
                 self.pause_button.configure(text="Resume")
 
@@ -173,9 +174,43 @@ class TimerFrame(ttk.Frame):
             command=self.toggle_pause,
             state="disabled",
         )
-        self.pause_button.pack(side="top")
+        self.pause_button.pack(side="top", pady=(0, 5))
+
+        # Restart button
+        self.restart_button = ttk.Button(
+            button_frame,
+            text="Restart",
+            style="Secondary.TButton",
+            command=self.restart_timer,
+            state="disabled",
+        )
+        self.restart_button.pack(side="top")
 
         self.update_timer()
+
+    def restart_timer(self):
+        """Restart the current time block."""
+        if not self.timer_service.timer_active:
+            return
+            
+        response = messagebox.askyesno(
+            "Restart TimeBlock",
+            "Are you sure you want to restart this time block from the beginning?"
+        )
+        
+        if response:
+            if self.timer_service.paused:
+                self.toggle_pause()  # Unpause if paused
+            self.timer_service.restart_timer()
+
+    def reset_timer_ui(self):
+        """Reset the timer UI to its initial state"""
+        self.start_button.configure(text="Start")
+        self.pause_button.configure(text="Pause", state="disabled")
+        self.restart_button.configure(state="disabled")
+        self.block_var.set("")
+        self.current_block_queue = None
+        self.current_block_index = 0
 
     def handle_session_completion(self, elapsed, was_stopped_manually=False):
         """Handle completion of a time block, showing dialog"""
@@ -204,14 +239,6 @@ class TimerFrame(ttk.Frame):
                 return
 
         self.reset_timer_ui()
-
-    def reset_timer_ui(self):
-        """Reset the timer UI to its initial state"""
-        self.start_button.configure(text="Start")
-        self.pause_button.configure(text="Pause", state="disabled")
-        self.block_var.set("")
-        self.current_block_queue = None
-        self.current_block_index = 0
 
     def toggle_pause(self):
         if self.timer_service.timer_active:
@@ -298,6 +325,7 @@ class TimerFrame(ttk.Frame):
         )
         self.start_button.configure(text="Stop")
         self.pause_button.configure(state="normal")
+        self.restart_button.configure(state="normal")
 
     def update_timer(self):
         if self.timer_service.timer_active:

@@ -11,6 +11,7 @@ class TimeBlockState(enum.Enum):
     ABANDONED = "abandoned"
     CANCELLED_ON_COMPLETE = "cancelled_on_complete"
     EXPIRED = "expired"
+    RESTARTED = "restarted"
 
 
 class TimeBlock(Base):

@@ -62,6 +62,10 @@ class CompletionDialog(BaseDialog):
 
     def _save(self):
         if not self.satisfaction_var.get():
+            messagebox.showwarning(
+                "Missing Rating",
+                "Please rate your satisfaction with the session before saving."
+            )
             return
 
         self.result = {

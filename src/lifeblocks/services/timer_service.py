@@ -82,7 +82,7 @@ class TimerService:
         self.paused = False
         self.pause_start = 0.0
         self.total_pause_duration = 0.0
-        
+
         # Create timeblock in ACTIVE state
         self.active_timeblock = TimeBlock(
             block_id=block.id,
@@ -161,6 +161,24 @@ class TimerService:
             self._notify_state_change()
         
         return active_elapsed_minutes
+
+    def restart_timer(self):
+        """Restart the current time block from the beginning."""
+        if not self.timer_active or not self.current_block:
+            return False
+            
+        # Store current block info
+        block = self.current_block
+        duration = self.session_duration
+        resistance = self.resistance_level
+        
+        # Stop current timer and mark as restarted
+        if self.active_timeblock:
+            self.active_timeblock.state = TimeBlockState.RESTARTED
+            self.session.commit()
+            
+        # Start fresh timer with same parameters
+        return self.start_timer(block, duration, resistance, forced=False)
 
     def save_session(self, elapsed_minutes, satisfaction_level=None, notes=None):
         if not self.session_start or not self.current_block:

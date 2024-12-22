@@ -218,7 +218,12 @@ class HistoryFrame(ttk.Frame):
 
         # Add state filter
         if state_value == "Current & Completed":
-            excluded_states = [TimeBlockState.ABANDONED, TimeBlockState.EXPIRED, TimeBlockState.CANCELLED_ON_COMPLETE]
+            excluded_states = [
+                TimeBlockState.ABANDONED,
+                TimeBlockState.EXPIRED,
+                TimeBlockState.CANCELLED_ON_COMPLETE,
+                TimeBlockState.RESTARTED,
+            ]
             query = query.filter(~TimeBlock.state.in_(excluded_states))
         elif state_value != "All States":
             query = query.filter(TimeBlock.state == TimeBlockState(state_value))
