@@ -5,6 +5,7 @@ from lifeblocks.models import TimeBlock, Block
 from lifeblocks.models.timeblock import TimeBlockState
 import tkinter.messagebox as messagebox
 from sqlalchemy import tuple_
+from .dialogs.edit_timeblock_dialog import EditTimeBlockDialog
 
 
 class HistoryFrame(ttk.Frame):
@@ -67,9 +68,22 @@ class HistoryFrame(ttk.Frame):
         state_combo.pack(side="left", padx=(0, 20))
         state_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_history())
 
+        # Button frame
+        button_frame = ttk.Frame(filter_frame)
+        button_frame.pack(side="left")
+
+        # Edit button
+        edit_button = ttk.Button(
+            button_frame,
+            text="Edit",
+            style="Secondary.TButton",
+            command=self.edit_selected,
+        )
+        edit_button.pack(side="left", padx=(0, 10))
+
         # Delete button
         delete_button = ttk.Button(
-            filter_frame,
+            button_frame,
             text="Delete Selected",
             style="Secondary.TButton",
             command=self.delete_selected,
@@ -115,6 +129,9 @@ class HistoryFrame(ttk.Frame):
 
         # Hide the id column
         self.tree["show"] = "headings"
+
+        # Bind double-click to edit
+        self.tree.bind("<Double-1>", lambda e: self.edit_selected())
 
         # Grid the tree with proper expansion
         self.tree.grid(row=1, column=0, sticky="nsew", padx=5)
@@ -300,3 +317,32 @@ class HistoryFrame(ttk.Frame):
         except Exception as e:
             self.session.rollback()
             messagebox.showerror("Error", f"Failed to delete items: {str(e)}")
+
+    def edit_selected(self):
+        selected_items = self.tree.selection()
+        if not selected_items:
+            messagebox.showwarning(
+                "Warning", "Please select a time block to edit!"
+            )
+            return
+
+        if len(selected_items) > 1:
+            messagebox.showwarning(
+                "Warning", "Please select only one time block to edit!"
+            )
+            return
+
+        # Get the timeblock ID from the selected item
+        item = self.tree.item(selected_items[0])
+        timeblock_id = item["values"][-1]  # ID is the last column
+
+        # Fetch the timeblock
+        timeblock = self.session.query(TimeBlock).get(timeblock_id)
+        if not timeblock:
+            messagebox.showerror("Error", "Time block not found!")
+            return
+
+        # Show edit dialog
+        dialog = EditTimeBlockDialog(self, self.session, timeblock)
+        if dialog.result:
+            self.refresh_history()
