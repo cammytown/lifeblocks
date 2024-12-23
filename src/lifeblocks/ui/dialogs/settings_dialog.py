@@ -27,6 +27,57 @@ class SettingsDialog:
         queue_frame = ttk.LabelFrame(main_frame, text="Block Queue Settings", padding="10")
         queue_frame.pack(fill="x", pady=(0, 10))
 
+        # Selection Mode
+        selection_frame = ttk.Frame(queue_frame)
+        selection_frame.pack(fill="x", pady=(0, 10))
+        
+        ttk.Label(
+            selection_frame,
+            text="Block Selection Mode:",
+            font=('TkDefaultFont', 10, 'bold')
+        ).pack(anchor="w")
+
+        self.leaf_based_var = tk.BooleanVar(
+            value=self.settings_service.get_setting("use_leaf_based_selection", "false") == "true"
+        )
+        
+        modes_frame = ttk.Frame(queue_frame)
+        modes_frame.pack(fill="x", pady=(0, 10))
+                
+        ttk.Radiobutton(
+            modes_frame,
+            text="Leaf-based Selection",
+            variable=self.leaf_based_var,
+            value=True,
+            command=self.save_selection_mode
+        ).pack(anchor="w", pady=(5, 0))
+        
+        ttk.Label(
+            modes_frame,
+            text="Compare all end-tasks directly, with weights multiplied through their parent chain",
+            font=('TkDefaultFont', 9, 'italic'),
+            foreground='gray'
+        ).pack(anchor="w", padx=(20, 0))
+        
+        # Radio buttons for selection modes
+        ttk.Radiobutton(
+            modes_frame,
+            text="Hierarchical Selection",
+            variable=self.leaf_based_var,
+            value=False,
+            command=self.save_selection_mode
+        ).pack(anchor="w")
+        
+        ttk.Label(
+            modes_frame,
+            text="Select blocks level by level through the hierarchy",
+            font=('TkDefaultFont', 9, 'italic'),
+            foreground='gray'
+        ).pack(anchor="w", padx=(20, 0))
+
+        # Separator
+        ttk.Separator(queue_frame, orient="horizontal").pack(fill="x", pady=(0, 10))
+
         # Fill Queue Option
         self.fill_queue_var = tk.BooleanVar(value=self.settings_service.get_setting("fill_fractional_queues", "true") == "true")
         ttk.Checkbutton(
@@ -140,3 +191,6 @@ class SettingsDialog:
             # Reset to default if invalid input
             self.time_weight_var.set("48")
             self.settings_service.set_setting("hours_until_double_weight", "48") 
+
+    def save_selection_mode(self):
+        self.settings_service.set_setting("use_leaf_based_selection", str(self.leaf_based_var.get()).lower())

@@ -95,7 +95,125 @@ class BlockService:
             return True
         return False
 
-    def pick_block_queue(self):
+    def get_all_leaf_blocks(self):
+        """Get all blocks that have no children."""
+        all_blocks = self.get_all_blocks()
+        return [block for block in all_blocks if not any(b.parent_id == block.id for b in all_blocks)]
+
+    def calculate_accumulated_weight(self, block, time_weight_multiplier=1.0):
+        """Calculate a block's weight including its parent's influence."""
+        weight = block.weight
+        current = block
+        
+        # Traverse up the parent chain, multiplying weights
+        while current.parent_id is not None:
+            parent = self.session.query(Block).get(current.parent_id)
+            if not parent:
+                break
+            weight *= parent.weight
+            current = parent
+            
+        # Apply time-based weight multiplier
+        if time_weight_multiplier > 1.0:
+            weight *= time_weight_multiplier
+            
+        return weight
+
+    def pick_block_queue_leaf_based(self):
+        """Pick a block queue by considering all leaf nodes together."""
+        def get_overdue_blocks(blocks):
+            """Return blocks that have exceeded their max interval"""
+            now = datetime.now()
+            return [
+                block
+                for block in blocks
+                if (
+                    block.max_interval_hours is not None
+                    and block.last_picked is not None
+                    and (now - block.last_picked).total_seconds() / 3600
+                    > block.max_interval_hours
+                )
+            ]
+
+        def calculate_weighted_blocks(blocks):
+            """Calculate weights for non-overdue blocks, including parent weights"""
+            now = datetime.now()
+            weighted_blocks = []
+
+            for block in blocks:
+                # Skip blocks that have exceeded max interval
+                if (
+                    block.max_interval_hours is not None
+                    and block.last_picked is not None
+                    and (now - block.last_picked).total_seconds() / 3600
+                    > block.max_interval_hours
+                ):
+                    continue
+
+                hours_until_double = float(self.settings_service.get_setting("hours_until_double_weight", "48"))
+                time_multiplier = 1.0 / hours_until_double
+                hours_since_picked = (
+                    (now - block.last_picked).total_seconds() / 3600 if block.last_picked else hours_until_double
+                )
+                time_weight = 1.0 + (hours_since_picked * time_multiplier)
+                
+                # Calculate weight including parent influence
+                total_weight = self.calculate_accumulated_weight(block, time_weight)
+                weighted_blocks.append((block, total_weight))
+
+            return weighted_blocks
+
+        def select_weighted_block(weighted_blocks):
+            if not weighted_blocks:
+                return None
+
+            total_weight = sum(weight for _, weight in weighted_blocks)
+            random_choice = random.uniform(0, total_weight)
+
+            cumulative_weight = 0
+            for block, weight in weighted_blocks:
+                cumulative_weight += weight
+                if cumulative_weight > random_choice:
+                    return block
+
+            return weighted_blocks[-1][0]
+
+        # Get all leaf blocks
+        leaf_blocks = self.get_all_leaf_blocks()
+        
+        # First check for overdue blocks
+        overdue_blocks = get_overdue_blocks(leaf_blocks)
+        if overdue_blocks:
+            selected_block = random.choice(overdue_blocks)
+        else:
+            # Otherwise use weighted selection
+            weighted_blocks = calculate_weighted_blocks(leaf_blocks)
+            selected_block = select_weighted_block(weighted_blocks)
+
+        if not selected_block:
+            return None
+
+        # Create initial queue with selected block
+        queue = BlockQueue(selected_block)
+        
+        # Check if we should fill fractional queues
+        should_fill_queues = self.settings_service.get_setting("fill_fractional_queues", "true") == "true"
+        
+        # If the queue isn't full and we should fill it, keep picking more blocks
+        if should_fill_queues:
+            while not queue.is_full():
+                # Pick another leaf block using the same weighted selection
+                weighted_blocks = calculate_weighted_blocks(leaf_blocks)
+                next_block = select_weighted_block(weighted_blocks)
+                if next_block and next_block.length_multiplier < 1.0:
+                    queue.add_block(next_block)
+                else:
+                    break  # Stop if we can't find a suitable block
+
+        return queue
+
+    def pick_block_queue_hierarchical(self):
+        """Pick a block queue using the original hierarchical method."""
         def get_overdue_blocks(blocks):
             """Return blocks that have exceeded their max interval"""
             now = datetime.now()
@@ -127,13 +245,10 @@ class BlockService:
 
                 base_weight = block.weight
                 hours_until_double = float(self.settings_service.get_setting("hours_until_double_weight", "48"))
-                # Calculate multiplier: if we want weight to double after X hours, then X * multiplier = 1.0
                 time_multiplier = 1.0 / hours_until_double
-                # Calculate how many hours it's been
                 hours_since_picked = (
                     (now - block.last_picked).total_seconds() / 3600 if block.last_picked else hours_until_double
                 )
-                # time_weight will be 1.0 when hours_since_picked equals hours_until_double
                 time_weight = hours_since_picked * time_multiplier
                 total_weight = base_weight * (1 + time_weight)
                 weighted_blocks.append((block, total_weight))
@@ -205,6 +320,14 @@ class BlockService:
         # Start the recursive selection from root blocks
         root_blocks = self.get_root_blocks()
         return pick_block_queue_recursive(root_blocks)
+
+    def pick_block_queue(self):
+        """Pick a block queue using either the hierarchical or leaf-based method."""
+        use_leaf_based = self.settings_service.get_setting("use_leaf_based_selection", "false") == "true"
+        if use_leaf_based:
+            return self.pick_block_queue_leaf_based()
+        else:
+            return self.pick_block_queue_hierarchical()
 
     def initialize_default_categories(self):
         # Check if this is first run using settings
