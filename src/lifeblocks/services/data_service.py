@@ -73,11 +73,11 @@ class DataService:
                 synchronize_session=False
             )
 
-        # if 'pick_reason' not in columns:
-        #     self.session.query(TimeBlock).update(
-        #         {"pick_reason": PickReason.NORMAL},
-        #         synchronize_session=False
-        #     )
+        if 'pick_reason' not in columns:
+            self.session.query(TimeBlock).update(
+                {"pick_reason": PickReason.NORMAL},
+                synchronize_session=False
+            )
         
         # Update schema version
         if settings:
