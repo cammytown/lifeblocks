@@ -83,8 +83,13 @@ class ThemeManager:
 
         style.map(
             "TRadiobutton",
-            background=[("active", "#1A1625")],
-            foreground=[("active", "#E8E6F0")],
+            background=[("active", "#241E2E")],
+            foreground=[("active", "#FFFFFF")],
+            indicatorcolor=[
+                ("selected", "#7768E5"),
+                ("!selected", "#2D2438"),
+                ("disabled", "#342B42"),
+            ]
         )
 
         # Button hover states
@@ -176,8 +181,13 @@ class ThemeManager:
 
         style.map(
             "TRadiobutton",
-            background=[("active", "#F5F3F7")],
-            foreground=[("active", "#2D2438")],
+            background=[("active", "#E8E6F0")],
+            foreground=[("active", "#000000")],
+            indicatorcolor=[
+                ("selected", "#7768E5"),
+                ("!selected", "#FFFFFF"),
+                ("disabled", "#F0EDF4"),
+            ]
         )
 
         # Button hover states
