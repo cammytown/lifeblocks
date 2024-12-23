@@ -1,16 +1,19 @@
 from dataclasses import dataclass
 from typing import List
 from lifeblocks.models.block import Block
+from lifeblocks.models.timeblock import PickReason
 
 
 @dataclass
 class BlockQueue:
     blocks: List[Block]
     total_multiplier: float = 1.0
+    pick_reason: PickReason = PickReason.NORMAL
 
-    def __init__(self, initial_block: Block = None):
+    def __init__(self, initial_block: Block = None, pick_reason: PickReason = PickReason.NORMAL):
         self.blocks = []
         self.total_multiplier = 0
+        self.pick_reason = pick_reason
         if initial_block:
             self.add_block(initial_block)
 

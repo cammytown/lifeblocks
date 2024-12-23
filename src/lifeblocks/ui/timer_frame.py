@@ -297,7 +297,7 @@ class TimerFrame(ttk.Frame):
         block = self.current_block_queue.blocks[self.current_block_index]
 
         # Show resistance dialog for the next block
-        resistance_dialog = ResistanceDialog(self, block.name)
+        resistance_dialog = ResistanceDialog(self, block.name, self.current_block_queue.pick_reason)
         self.wait_window(resistance_dialog.dialog)
 
         if resistance_dialog.result is None:
@@ -321,7 +321,11 @@ class TimerFrame(ttk.Frame):
             f"{block.name} ({self.current_block_index + 1}/{len(self.current_block_queue.blocks)})"
         )
         self.timer_service.start_timer(
-            block, adjusted_duration, resistance_dialog.result, forced=was_force_started
+            block, 
+            adjusted_duration, 
+            resistance_dialog.result, 
+            forced=was_force_started,
+            pick_reason=self.current_block_queue.pick_reason
         )
         self.start_button.configure(text="Stop")
         self.pause_button.configure(state="normal")

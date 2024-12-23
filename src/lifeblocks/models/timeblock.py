@@ -14,6 +14,12 @@ class TimeBlockState(enum.Enum):
     RESTARTED = "restarted"
 
 
+class PickReason(enum.Enum):
+    NORMAL = "normal"
+    OVERDUE = "overdue"
+    FORCED = "forced"
+
+
 class TimeBlock(Base):
     __tablename__ = "history"
 
@@ -30,6 +36,7 @@ class TimeBlock(Base):
     state = Column(Enum(TimeBlockState), default=TimeBlockState.ACTIVE)
     pause_start = Column(DateTime, nullable=True)
     forced = Column(Boolean, default=False)
+    pick_reason = Column(Enum(PickReason), default=PickReason.NORMAL)
 
     # Relationships
     block = relationship("Block", back_populates="sessions")
@@ -46,6 +53,7 @@ class TimeBlock(Base):
         state=TimeBlockState.ACTIVE,
         pause_start=None,
         forced=False,
+        pick_reason=PickReason.NORMAL,
     ):
         self.block_id = block_id
         self.start_time = start_time
@@ -59,3 +67,4 @@ class TimeBlock(Base):
         self.state = state
         self.pause_start = pause_start
         self.forced = forced
+        self.pick_reason = pick_reason

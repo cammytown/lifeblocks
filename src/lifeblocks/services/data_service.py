@@ -5,10 +5,10 @@ from sqlalchemy import Column, Enum, DateTime, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import DDL
 from lifeblocks.models import Block, TimeBlock, Settings
-from lifeblocks.models.timeblock import TimeBlockState
+from lifeblocks.models.timeblock import TimeBlockState, PickReason
 
 class DataService:
-    CURRENT_VERSION = "1.1"
+    CURRENT_VERSION = "1.11"
 
     def __init__(self, session: Session):
         self.session = session
@@ -38,6 +38,13 @@ class DataService:
                     f"ADD COLUMN state VARCHAR(20) DEFAULT '{TimeBlockState.COMPLETED.value}'"
                 ))
 
+            if 'pick_reason' not in columns:
+                # Add pick_reason column
+                connection.execute(DDL(
+                    f"ALTER TABLE {TimeBlock.__tablename__} "
+                    "ADD COLUMN pick_reason VARCHAR(20) DEFAULT 'normal'"
+                ))
+
             if 'pause_start' not in columns:
                 # Add pause_start column
                 connection.execute(DDL(
@@ -58,6 +65,12 @@ class DataService:
                 {"state": TimeBlockState.COMPLETED},
                 synchronize_session=False
             )
+
+        # if 'pick_reason' not in columns:
+        #     self.session.query(TimeBlock).update(
+        #         {"pick_reason": PickReason.NORMAL},
+        #         synchronize_session=False
+        #     )
         
         # Update schema version
         if settings:
