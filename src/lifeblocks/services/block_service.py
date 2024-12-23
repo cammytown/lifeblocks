@@ -256,7 +256,7 @@ class BlockService:
 
     def pick_block_queue(self):
         """Pick a block queue using either the hierarchical or leaf-based method."""
-        use_leaf_based = self.settings_service.get_setting("use_leaf_based_selection", "false") == "true"
+        use_leaf_based = self.settings_service.get_setting("use_leaf_based_selection", "true") == "true"
         if use_leaf_based:
             return self.pick_block_queue_leaf_based()
         else:

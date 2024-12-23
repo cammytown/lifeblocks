@@ -38,7 +38,7 @@ class SettingsDialog:
         ).pack(anchor="w")
 
         self.leaf_based_var = tk.BooleanVar(
-            value=self.settings_service.get_setting("use_leaf_based_selection", "false") == "true"
+            value=self.settings_service.get_setting("use_leaf_based_selection", "true") == "true"
         )
         
         modes_frame = ttk.Frame(queue_frame)
