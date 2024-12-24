@@ -12,6 +12,7 @@ class TimeBlockState(enum.Enum):
     CANCELLED_ON_COMPLETE = "cancelled_on_complete"
     EXPIRED = "expired"
     RESTARTED = "restarted"
+    DELAYED = "delayed"
 
 
 class PickReason(enum.Enum):
@@ -37,6 +38,7 @@ class TimeBlock(Base):
     pause_start = Column(DateTime, nullable=True)
     forced = Column(Boolean, default=False)
     pick_reason = Column(Enum(PickReason), default=PickReason.NORMAL)
+    delay_hours = Column(Integer, nullable=True)
 
     # Relationships
     block = relationship("Block", back_populates="sessions")
@@ -54,6 +56,7 @@ class TimeBlock(Base):
         pause_start=None,
         forced=False,
         pick_reason=PickReason.NORMAL,
+        delay_hours=None,
     ):
         self.block_id = block_id
         self.start_time = start_time
@@ -68,3 +71,4 @@ class TimeBlock(Base):
         self.pause_start = pause_start
         self.forced = forced
         self.pick_reason = pick_reason
+        self.delay_hours = delay_hours

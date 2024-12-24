@@ -304,6 +304,15 @@ class TimerFrame(ttk.Frame):
             self.reset_timer_ui()
             return
 
+        if resistance_dialog.result["delayed"]:
+            # Create a delayed timeblock
+            self.block_service.create_delayed_timeblock(
+                block.id,
+                delay_hours=resistance_dialog.result["delay_hours"]
+            )
+            self.reset_timer_ui()
+            return
+
         # Check if this block was force-started through the UI
         was_force_started = hasattr(self.current_block_queue, 'was_force_started') and self.current_block_queue.was_force_started
 
@@ -323,7 +332,7 @@ class TimerFrame(ttk.Frame):
         self.timer_service.start_timer(
             block, 
             adjusted_duration, 
-            resistance_dialog.result, 
+            resistance_dialog.result["resistance"], 
             forced=was_force_started,
             pick_reason=self.current_block_queue.pick_reason
         )

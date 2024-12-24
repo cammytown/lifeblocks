@@ -30,6 +30,7 @@ class ThemeManager:
         style.configure("TButton", background="#2D2438", foreground="#E8E6F0")
         style.configure("Secondary.TButton", background="#342B42", foreground="#E8E6F0")
         style.configure("TEntry", fieldbackground="#2D2438", foreground="#E8E6F0")
+        style.configure("TSpinbox", fieldbackground="#2D2438", foreground="#E8E6F0", arrowcolor="#E8E6F0")
         style.configure("TFrame", background="#1A1625")
         style.configure("Card.TFrame", background="#241E2E")
         style.configure("TLabelframe", background="#1A1625")
@@ -48,6 +49,22 @@ class ThemeManager:
                 ("!selected", "#2D2438"),
                 ("disabled", "#342B42"),
             ],
+        )
+
+        # Spinbox state mapping
+        style.map(
+            "TSpinbox",
+            fieldbackground=[
+                ("readonly", "#2D2438"),
+                ("disabled", "#1A1822")
+            ],
+            foreground=[
+                ("readonly", "#E8E6F0"),
+                ("disabled", "#444444")
+            ],
+            arrowcolor=[
+                ("disabled", "#444444")
+            ]
         )
 
         # Configure Treeview with grid lines and proper spacing
@@ -128,6 +145,7 @@ class ThemeManager:
         style.configure("TButton", background="#E8E6F0", foreground="#2D2438")
         style.configure("Secondary.TButton", background="#F0EDF4", foreground="#2D2438")
         style.configure("TEntry", fieldbackground="#FFFFFF", foreground="#2D2438")
+        style.configure("TSpinbox", fieldbackground="#FFFFFF", foreground="#2D2438", arrowcolor="#2D2438")
         style.configure("TFrame", background="#F5F3F7")
         style.configure("Card.TFrame", background="#FFFFFF")
         style.configure("TLabelframe", background="#F5F3F7")
@@ -146,6 +164,22 @@ class ThemeManager:
                 ("!selected", "#FFFFFF"),
                 ("disabled", "#F0EDF4"),
             ],
+        )
+
+        # Spinbox state mapping
+        style.map(
+            "TSpinbox",
+            fieldbackground=[
+                ("readonly", "#FFFFFF"),
+                ("disabled", "#F0EDF4")
+            ],
+            foreground=[
+                ("readonly", "#2D2438"),
+                ("disabled", "#888888")
+            ],
+            arrowcolor=[
+                ("disabled", "#888888")
+            ]
         )
 
         # Configure Treeview with grid lines and proper spacing

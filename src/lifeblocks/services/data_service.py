@@ -8,7 +8,7 @@ from lifeblocks.models import Block, TimeBlock, Settings
 from lifeblocks.models.timeblock import TimeBlockState, PickReason
 
 class DataService:
-    CURRENT_VERSION = "1.11"
+    CURRENT_VERSION = "1.12"
 
     def __init__(self, session: Session):
         self.session = session
@@ -57,6 +57,13 @@ class DataService:
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN forced BOOLEAN DEFAULT FALSE"
+                ))
+
+            if 'delay_hours' not in columns:
+                # Add delay_hours column
+                connection.execute(DDL(
+                    f"ALTER TABLE {TimeBlock.__tablename__} "
+                    "ADD COLUMN delay_hours INTEGER NULL"
                 ))
 
         # Now update data in a new transaction
@@ -118,6 +125,7 @@ class DataService:
                     "state": tb.state.value if tb.state else TimeBlockState.COMPLETED.value,
                     "pause_start": tb.pause_start.isoformat() if tb.pause_start else None,
                     "forced": tb.forced,
+                    "delay_hours": tb.delay_hours,
                 }
                 for tb in timeblocks
             ],
@@ -174,6 +182,7 @@ class DataService:
                         if timeblock_data.get("pause_start")
                         else None,
                     forced=timeblock_data.get("forced", False),
+                    delay_hours=timeblock_data.get("delay_hours"),
                 )
                 timeblock.id = timeblock_data["id"]  # Preserve original IDs
                 timeblock.deleted = timeblock_data.get("deleted", False)

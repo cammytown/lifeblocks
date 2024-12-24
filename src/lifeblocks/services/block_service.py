@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 from typing import List, Tuple, Optional
 from lifeblocks.models.block import Block
 from lifeblocks.models.block_queue import BlockQueue
-from lifeblocks.models.timeblock import PickReason
+from lifeblocks.models.timeblock import PickReason, TimeBlock, TimeBlockState
 
 
 class BlockService:
@@ -121,7 +121,7 @@ class BlockService:
         return weight
 
     def _get_overdue_blocks(self, blocks: List[Block]) -> List[Block]:
-        """Return blocks that have exceeded their max interval"""
+        """Return blocks that have exceeded their max interval and weren't recently delayed."""
         now = datetime.now()
         return [
             block
@@ -131,6 +131,7 @@ class BlockService:
                 and block.last_picked is not None
                 and (now - block.last_picked).total_seconds() / 3600
                 > block.max_interval_hours
+                and not self.was_recently_delayed(block)
             )
         ]
 
@@ -306,3 +307,44 @@ class BlockService:
             return None
         queue = BlockQueue(block)
         return queue
+
+    def create_delayed_timeblock(self, block_id, delay_hours=None):
+        """Create a TimeBlock entry to record that a block was delayed."""
+        now = datetime.now()
+        timeblock = TimeBlock(
+            block_id=block_id,
+            start_time=now,
+            duration_minutes=0,
+            state=TimeBlockState.DELAYED,
+            delay_hours=delay_hours
+        )
+        self.session.add(timeblock)
+        self.session.commit()
+        return timeblock
+
+    def was_recently_delayed(self, block: Block, hours: int = 4) -> bool:
+        """Check if a block was delayed within the last n hours."""
+        if not block:
+            return False
+            
+        now = datetime.now()
+        
+        # Get the most recent delay for this block
+        recent_delay = (
+            self.session.query(TimeBlock)
+            .filter(
+                TimeBlock.block_id == block.id,
+                TimeBlock.state == TimeBlockState.DELAYED
+            )
+            .order_by(TimeBlock.start_time.desc())
+            .first()
+        )
+        
+        if not recent_delay:
+            return False
+            
+        # Use the delay_hours from the TimeBlock, or fall back to 4 hours
+        delay_duration = recent_delay.delay_hours or 4
+        cutoff = now - timedelta(hours=delay_duration)
+        
+        return recent_delay.start_time >= cutoff

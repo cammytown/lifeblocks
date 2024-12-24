@@ -4,6 +4,65 @@ from .base_dialog import BaseDialog
 from lifeblocks.models.timeblock import PickReason
 
 
+class DelayDialog(BaseDialog):
+    def __init__(self, parent, block_name):
+        self.block_name = block_name
+        self.result = None
+        super().__init__(parent, "Delay Block", y_offset=100)
+
+    def setup_ui(self):
+        # Block name
+        ttk.Label(self.main_frame, text=f"Delay block:", style="TLabel").pack(
+            pady=(0, 5)
+        )
+        ttk.Label(self.main_frame, text=self.block_name, font=("Helvetica", 12, "bold")).pack(
+            pady=(0, 20)
+        )
+
+        # Delay duration input
+        delay_frame = ttk.Frame(self.main_frame)
+        delay_frame.pack(pady=(0, 20))
+        ttk.Label(delay_frame, text="Delay for:").pack(side="left", padx=(0, 5))
+        
+        self.delay_var = tk.StringVar(value="4")
+        delay_spinbox = ttk.Spinbox(
+            delay_frame,
+            from_=1,
+            to=24,
+            width=3,
+            textvariable=self.delay_var
+        )
+        delay_spinbox.pack(side="left", padx=(0, 5))
+        ttk.Label(delay_frame, text="hours").pack(side="left")
+
+        # Buttons
+        btn_frame = ttk.Frame(self.main_frame, style="Card.TFrame")
+        btn_frame.pack(fill="x", pady=(20, 0))
+
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            style="Secondary.TButton",
+            command=self.destroy,
+        ).pack(side="right", padx=5)
+
+        ttk.Button(
+            btn_frame,
+            text="Delay",
+            style="Accent.TButton",
+            command=self._submit,
+        ).pack(side="right", padx=5)
+
+    def _submit(self):
+        try:
+            delay_hours = int(self.delay_var.get())
+            if 1 <= delay_hours <= 24:
+                self.result = delay_hours
+                self.destroy()
+        except ValueError:
+            pass
+
+
 class ResistanceDialog(BaseDialog):
     def __init__(self, parent, block_name, pick_reason=PickReason.NORMAL):
         self.block_name = block_name
@@ -59,11 +118,30 @@ class ResistanceDialog(BaseDialog):
             style="Secondary.TButton",
             command=self.destroy,
         ).pack(side="right", padx=5)
+
+        # Add Delay button for overdue blocks
+        if self.pick_reason == PickReason.OVERDUE:
+            ttk.Button(
+                btn_frame,
+                text="Delay",
+                style="Secondary.TButton",
+                command=self._delay,
+            ).pack(side="right", padx=5)
+
         ttk.Button(
             btn_frame, text="Start", style="Accent.TButton", command=self._submit
         ).pack(side="right", padx=5)
 
+    def _delay(self):
+        delay_dialog = DelayDialog(self.dialog.winfo_toplevel(), self.block_name)
+        self.dialog.wait_window(delay_dialog.dialog)
+        
+        if delay_dialog.result:
+            self.result = {"delayed": True, "delay_hours": delay_dialog.result}
+            self.destroy()
+
     def _submit(self):
         if self.resistance_var.get():
-            self.result = int(self.resistance_var.get())
+            # Set a normal result with resistance level
+            self.result = {"delayed": False, "resistance": int(self.resistance_var.get())}
             self.destroy()
