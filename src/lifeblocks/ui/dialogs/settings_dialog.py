@@ -147,6 +147,19 @@ class SettingsDialog:
             command=self.test_sound
         ).pack(side="right", padx=(5, 0))
 
+        # Developer Settings
+        dev_frame = ttk.LabelFrame(main_frame, text="Developer Settings", padding="10")
+        dev_frame.pack(fill="x", pady=(0, 10))
+
+        # Debug Mode Option
+        self.debug_mode_var = tk.BooleanVar(value=self.settings_service.get_setting("debug_mode", "false") == "true")
+        ttk.Checkbutton(
+            dev_frame,
+            text="Debug Mode (enables additional logging)",
+            variable=self.debug_mode_var,
+            command=self.save_debug_settings
+        ).pack(pady=(0, 10))
+
         # Close button
         ttk.Button(main_frame, text="Close", command=self.dialog.destroy).pack(
             pady=(20, 0)
@@ -158,6 +171,9 @@ class SettingsDialog:
     def save_sound_settings(self):
         self.settings_service.set_setting("play_sound", str(self.play_sound_var.get()).lower())
         self.settings_service.set_setting("sound_file", self.sound_file_var.get())
+
+    def save_debug_settings(self):
+        self.settings_service.set_setting("debug_mode", str(self.debug_mode_var.get()).lower())
 
     def browse_sound_file(self):
         filename = filedialog.askopenfilename(

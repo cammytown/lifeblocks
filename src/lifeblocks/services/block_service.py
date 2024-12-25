@@ -139,6 +139,9 @@ class BlockService:
         """Calculate weights for non-overdue blocks"""
         now = datetime.now()
         weighted_blocks = []
+        
+        # Check if debug mode is enabled
+        debug_mode = self.settings_service.get_setting("debug_mode", "false") == "true"
 
         for block in blocks:
             # Skip blocks that have exceeded max interval
@@ -162,6 +165,14 @@ class BlockService:
             # Calculate weight including parent influence if requested
             total_weight = self.calculate_accumulated_weight(block, time_weight) if include_parent_weights else block.weight * time_weight
             weighted_blocks.append((block, total_weight))
+            
+            if debug_mode:
+                base_weight = block.weight
+                time_factor = f"(1 + {hours_since_picked:.1f}h * {time_multiplier:.4f})"
+                if include_parent_weights:
+                    print(f"Block: {block.name:<30} | Base Weight: {base_weight:<5} | Time Factor: {time_factor:<20} | Final Weight: {total_weight:.2f}")
+                else:
+                    print(f"Block: {block.name:<30} | Weight: {base_weight:<5} | Time Factor: {time_factor:<20} | Final Weight: {total_weight:.2f}")
 
         return weighted_blocks
 
