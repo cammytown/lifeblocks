@@ -269,19 +269,25 @@ class TimerFrame(ttk.Frame):
             self.current_block_index = 0
             self.start_next_block(base_duration)
         else:
+            # First confirm if user wants to stop
+            stop_response = messagebox.askyesno(
+                "Stop TimeBlock",
+                "Are you sure you want to stop this timeblock?"
+            )
+            
+            if not stop_response:
+                return
+                
+            # If confirmed, stop the timer and handle saving
             elapsed = self.timer_service.stop_timer()
             if elapsed:
-                # First ask if they want to interrupt and save
-                response = messagebox.askyesnocancel(
-                    "Stop TimeBlock",
+                save_response = messagebox.askyesno(
+                    "Save TimeBlock",
                     f"Do you want to save this timeblock to history?\n\n"
-                    f"Elapsed time: {elapsed:.1f} minutes",
+                    f"Elapsed time: {elapsed:.1f} minutes"
                 )
 
-                if response is None:  # Cancel - resume timer
-                    self.timer_service.resume_timer()
-                    return
-                elif response:  # Yes - show completion dialog
+                if save_response:  # Yes - show completion dialog
                     self.handle_session_completion(elapsed, was_stopped_manually=True)
                 else:  # No - just reset UI
                     self.reset_timer_ui()
