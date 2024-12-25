@@ -88,7 +88,7 @@ class DataService:
                 synchronize_session=False
             )
 
-        if 'pick_reason' not in columns:
+        if 'pick_reason' not in timeblock_columns:
             self.session.query(TimeBlock).update(
                 {"pick_reason": PickReason.NORMAL},
                 synchronize_session=False
