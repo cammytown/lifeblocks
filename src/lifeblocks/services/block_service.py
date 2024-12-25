@@ -181,30 +181,78 @@ class BlockService:
 
     def _fill_fractional_queue(self, queue: BlockQueue, blocks: List[Block], overdue_blocks: Optional[List[Block]] = None) -> None:
         """Fill a queue with fractional blocks if enabled, prioritizing overdue blocks"""
+        debug_mode = self.settings_service.get_setting("debug_mode", "false") == "true"
         should_fill_queues = self.settings_service.get_setting("fill_fractional_queues", "true") == "true"
+        
+        if debug_mode:
+            print("\n=== Filling Fractional Queue ===")
+            print(f"Fill queues enabled: {should_fill_queues}")
+            print(f"Current queue length: {queue.total_multiplier}")
+            
         if not should_fill_queues:
             return
 
         # First try to fill with overdue blocks if any were provided
         if overdue_blocks:
-            remaining_overdue = [b for b in overdue_blocks if b not in queue.blocks]
+            remaining_overdue = [b for b in overdue_blocks if b not in queue.blocks and b.length_multiplier < 1.0]
+            if debug_mode:
+                print(f"Attempting to fill with {len(remaining_overdue)} remaining overdue blocks")
+            
             while not queue.is_full() and remaining_overdue:
                 next_block = random.choice(remaining_overdue)
+                if debug_mode:
+                    print(f"Trying overdue block: {next_block.name} (length_multiplier: {next_block.length_multiplier})")
+                    print(f"Queue has space: {queue.has_space_for(next_block)}")
+                
                 if queue.has_space_for(next_block):
                     queue.add_block(next_block)
+                    if debug_mode:
+                        print(f"Added overdue block. New queue length: {queue.total_multiplier}")
                 remaining_overdue.remove(next_block)
 
         # If queue still not full, fall back to weighted selection
-        weighted_blocks = self._calculate_weighted_blocks(blocks, include_parent_weights=True)
-        while not queue.is_full():
+        if debug_mode and not queue.is_full():
+            print("\nAttempting to fill remaining space with weighted blocks")
+            
+        # Filter out blocks already in queue and non-fractional blocks
+        available_blocks = [b for b in blocks if b not in queue.blocks and b.length_multiplier < 1.0]
+        weighted_blocks = self._calculate_weighted_blocks(available_blocks, include_parent_weights=True)
+        
+        attempts = 0  # Add a counter to prevent infinite loops
+        max_attempts = 10  # Maximum number of attempts to fill the queue
+        
+        while not queue.is_full() and attempts < max_attempts:
+            attempts += 1
+            if not weighted_blocks:
+                if debug_mode:
+                    print("No more available blocks to fill queue")
+                break
+                
             next_block = self._select_weighted_block(weighted_blocks)
-            if next_block and next_block.length_multiplier < 1.0 and queue.has_space_for(next_block):
+            if not next_block:
+                if debug_mode:
+                    print("No block selected")
+                break
+                
+            if debug_mode:
+                print(f"Selected block: {next_block.name} (length_multiplier: {next_block.length_multiplier})")
+                print(f"Queue has space: {queue.has_space_for(next_block)}")
+            
+            if queue.has_space_for(next_block):
                 queue.add_block(next_block)
+                if debug_mode:
+                    print(f"Added block. New queue length: {queue.total_multiplier}")
+                # Remove the added block from weighted_blocks
+                weighted_blocks = [(b, w) for b, w in weighted_blocks if b != next_block]
             else:
+                if debug_mode:
+                    print("Block wouldn't fit in remaining space")
                 break
 
     def _build_block_queue(self, blocks: List[Block]) -> Optional[BlockQueue]:
         """Build a queue from candidate blocks, respecting length multipliers."""
+        debug_mode = self.settings_service.get_setting("debug_mode", "false") == "true"
+        
         # Check for overdue blocks
         now = datetime.now()
         overdue_blocks = [
@@ -219,11 +267,22 @@ class BlockService:
             )
         ]
 
+        if debug_mode:
+            print("\n=== Building Block Queue ===")
+            print(f"Found {len(overdue_blocks)} overdue blocks")
+
         # First try overdue blocks
         if overdue_blocks:
             selected_block = random.choice(overdue_blocks)
+            if debug_mode:
+                print(f"Selected overdue block: {selected_block.name} (length_multiplier: {selected_block.length_multiplier})")
             queue = BlockQueue(selected_block, pick_reason=PickReason.OVERDUE)
             self._fill_fractional_queue(queue, blocks, overdue_blocks)
+            if debug_mode:
+                print("Final queue composition:")
+                for block in queue.blocks:
+                    print(f"  - {block.name} (length_multiplier: {block.length_multiplier})")
+                print(f"Total queue length: {queue.total_multiplier}")
             return queue
 
         # Calculate weighted blocks for selection
@@ -231,15 +290,32 @@ class BlockService:
         
         # Filter weighted blocks by those that would fit
         fitting_weighted = [(b, w) for b, w in weighted_blocks if b.length_multiplier <= 1.0]
+        if debug_mode:
+            print(f"Found {len(fitting_weighted)} blocks that could fit as primary block")
+        
         if not fitting_weighted:
+            if debug_mode:
+                print("No fitting blocks found")
             return None
 
         selected_block = self._select_weighted_block(fitting_weighted)
         if not selected_block:
+            if debug_mode:
+                print("Failed to select a block")
             return None
+
+        if debug_mode:
+            print(f"Selected primary block: {selected_block.name} (length_multiplier: {selected_block.length_multiplier})")
 
         queue = BlockQueue(selected_block, pick_reason=PickReason.NORMAL)
         self._fill_fractional_queue(queue, blocks, overdue_blocks)
+        
+        if debug_mode:
+            print("Final queue composition:")
+            for block in queue.blocks:
+                print(f"  - {block.name} (length_multiplier: {block.length_multiplier})")
+            print(f"Total queue length: {queue.total_multiplier}")
+        
         return queue
 
     def pick_block_queue_leaf_based(self):
