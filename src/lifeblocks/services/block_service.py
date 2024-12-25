@@ -152,8 +152,10 @@ class BlockService:
 
             hours_until_double = float(self.settings_service.get_setting("hours_until_double_weight", "48"))
             time_multiplier = 1.0 / hours_until_double
+            # For unpicked blocks, use time since creation instead of a fixed value
             hours_since_picked = (
-                (now - block.last_picked).total_seconds() / 3600 if block.last_picked else hours_until_double
+                (now - block.last_picked).total_seconds() / 3600 if block.last_picked
+                else (now - block.created_at).total_seconds() / 3600
             )
             time_weight = 1.0 + (hours_since_picked * time_multiplier)
             

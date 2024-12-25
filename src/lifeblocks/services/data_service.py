@@ -8,7 +8,7 @@ from lifeblocks.models import Block, TimeBlock, Settings
 from lifeblocks.models.timeblock import TimeBlockState, PickReason
 
 class DataService:
-    CURRENT_VERSION = "1.12"
+    CURRENT_VERSION = "1.13"
 
     def __init__(self, session: Session):
         self.session = session
@@ -24,50 +24,65 @@ class DataService:
         inspector = inspect(self.engine)
         
         # Check TimeBlock schema
-        columns = {col['name']: col for col in inspector.get_columns(TimeBlock.__tablename__)}
+        timeblock_columns = {col['name']: col for col in inspector.get_columns(TimeBlock.__tablename__)}
+        
+        # Check Block schema
+        block_columns = {col['name']: col for col in inspector.get_columns(Block.__tablename__)}
         
         # Close any existing transactions
         self.session.commit()
         
         # Execute schema updates in a separate connection
         with self.engine.begin() as connection:
-            if 'state' not in columns:
+            if 'state' not in timeblock_columns:
                 # Add state column
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     f"ADD COLUMN state VARCHAR(20) DEFAULT '{TimeBlockState.COMPLETED.value}'"
                 ))
 
-            if 'pick_reason' not in columns:
+            if 'pick_reason' not in timeblock_columns:
                 # Add pick_reason column
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN pick_reason VARCHAR(20) DEFAULT 'normal'"
                 ))
 
-            if 'pause_start' not in columns:
+            if 'pause_start' not in timeblock_columns:
                 # Add pause_start column
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN pause_start TIMESTAMP NULL"
                 ))
 
-            if 'forced' not in columns:
+            if 'forced' not in timeblock_columns:
                 # Add forced column
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN forced BOOLEAN DEFAULT FALSE"
                 ))
 
-            if 'delay_hours' not in columns:
+            if 'delay_hours' not in timeblock_columns:
                 # Add delay_hours column
                 connection.execute(DDL(
                     f"ALTER TABLE {TimeBlock.__tablename__} "
                     "ADD COLUMN delay_hours INTEGER NULL"
                 ))
 
+            if 'created_at' not in block_columns:
+                # Add created_at column (SQLite doesn't support adding NOT NULL columns with defaults)
+                connection.execute(DDL(
+                    f"ALTER TABLE {Block.__tablename__} "
+                    "ADD COLUMN created_at TIMESTAMP"
+                ))
+                # Update all existing rows with current timestamp
+                connection.execute(DDL(
+                    f"UPDATE {Block.__tablename__} "
+                    "SET created_at = CURRENT_TIMESTAMP"
+                ))
+
         # Now update data in a new transaction
-        if 'state' not in columns:
+        if 'state' not in timeblock_columns:
             self.session.query(TimeBlock).update(
                 {"state": TimeBlockState.COMPLETED},
                 synchronize_session=False
