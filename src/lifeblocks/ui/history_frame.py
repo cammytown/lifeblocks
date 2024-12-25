@@ -240,6 +240,7 @@ class HistoryFrame(ttk.Frame):
                 TimeBlockState.EXPIRED,
                 TimeBlockState.CANCELLED_ON_COMPLETE,
                 TimeBlockState.RESTARTED,
+                TimeBlockState.DELAYED,
             ]
             query = query.filter(~TimeBlock.state.in_(excluded_states))
         elif state_value != "All States":
