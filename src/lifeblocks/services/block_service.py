@@ -120,28 +120,10 @@ class BlockService:
             
         return weight
 
-    def _get_overdue_blocks(self, blocks: List[Block]) -> List[Block]:
-        """Return blocks that have exceeded their max interval and weren't recently delayed."""
-        now = datetime.now()
-        return [
-            block
-            for block in blocks
-            if (
-                block.max_interval_hours is not None
-                and block.last_picked is not None
-                and (now - block.last_picked).total_seconds() / 3600
-                > block.max_interval_hours
-                and not self.was_recently_delayed(block)
-            )
-        ]
-
     def _calculate_weighted_blocks(self, blocks: List[Block], include_parent_weights: bool = False) -> List[Tuple[Block, float]]:
         """Calculate weights for non-overdue blocks"""
         now = datetime.now()
         weighted_blocks = []
-        
-        # Check if debug mode is enabled
-        debug_mode = self.settings_service.get_setting("debug_mode", "false") == "true"
 
         for block in blocks:
             # Skip blocks that have exceeded max interval
@@ -165,14 +147,6 @@ class BlockService:
             # Calculate weight including parent influence if requested
             total_weight = self.calculate_accumulated_weight(block, time_weight) if include_parent_weights else block.weight * time_weight
             weighted_blocks.append((block, total_weight))
-            
-            if debug_mode:
-                base_weight = block.weight
-                time_factor = f"(1 + {hours_since_picked:.1f}h * {time_multiplier:.4f})"
-                if include_parent_weights:
-                    print(f"Block: {block.name:<30} | Base Weight: {base_weight:<5} | Time Factor: {time_factor:<20} | Final Weight: {total_weight:.2f}")
-                else:
-                    print(f"Block: {block.name:<30} | Weight: {base_weight:<5} | Time Factor: {time_factor:<20} | Final Weight: {total_weight:.2f}")
 
         return weighted_blocks
 
@@ -192,7 +166,7 @@ class BlockService:
 
         return weighted_blocks[-1][0] if weighted_blocks else None
 
-    def _fill_fractional_queue(self, queue: BlockQueue, available_blocks: List[Block], weighted_blocks: List[Tuple[Block, float]], overdue_blocks: Optional[List[Block]] = None) -> None:
+    def _fill_fractional_queue(self, queue: BlockQueue, blocks: List[Block], overdue_blocks: Optional[List[Block]] = None) -> None:
         """Fill a queue with fractional blocks if enabled, prioritizing overdue blocks"""
         should_fill_queues = self.settings_service.get_setting("fill_fractional_queues", "true") == "true"
         if not should_fill_queues:
@@ -200,37 +174,65 @@ class BlockService:
 
         # First try to fill with overdue blocks if any were provided
         if overdue_blocks:
-            overdue_fractional = [b for b in overdue_blocks if b.length_multiplier < 1.0]
-            while not queue.is_full() and overdue_fractional:
-                next_block = random.choice(overdue_fractional)
-                queue.add_block(next_block)
-                overdue_fractional.remove(next_block)
+            remaining_overdue = [b for b in overdue_blocks if b not in queue.blocks]
+            while not queue.is_full() and remaining_overdue:
+                next_block = random.choice(remaining_overdue)
+                if queue.has_space_for(next_block):
+                    queue.add_block(next_block)
+                remaining_overdue.remove(next_block)
 
         # If queue still not full, fall back to weighted selection
+        weighted_blocks = self._calculate_weighted_blocks(blocks, include_parent_weights=True)
         while not queue.is_full():
             next_block = self._select_weighted_block(weighted_blocks)
-            if next_block and next_block.length_multiplier < 1.0:
+            if next_block and next_block.length_multiplier < 1.0 and queue.has_space_for(next_block):
                 queue.add_block(next_block)
             else:
                 break
 
-    def pick_block_queue_leaf_based(self):
-        """Pick a block queue by considering all leaf nodes together."""
-        leaf_blocks = self.get_all_leaf_blocks()
-        overdue_blocks = self._get_overdue_blocks(leaf_blocks)
-        weighted_blocks = self._calculate_weighted_blocks(leaf_blocks, include_parent_weights=True)
-        
+    def _build_block_queue(self, blocks: List[Block]) -> Optional[BlockQueue]:
+        """Build a queue from candidate blocks, respecting length multipliers."""
+        # Check for overdue blocks
+        now = datetime.now()
+        overdue_blocks = [
+            block
+            for block in blocks
+            if (
+                block.max_interval_hours is not None
+                and block.last_picked is not None
+                and (now - block.last_picked).total_seconds() / 3600
+                > block.max_interval_hours
+                and not self.was_recently_delayed(block)
+            )
+        ]
+
+        # First try overdue blocks
         if overdue_blocks:
             selected_block = random.choice(overdue_blocks)
             queue = BlockQueue(selected_block, pick_reason=PickReason.OVERDUE)
-        else:
-            selected_block = self._select_weighted_block(weighted_blocks)
-            if not selected_block:
-                return None
-            queue = BlockQueue(selected_block, pick_reason=PickReason.NORMAL)
+            self._fill_fractional_queue(queue, blocks, overdue_blocks)
+            return queue
 
-        self._fill_fractional_queue(queue, leaf_blocks, weighted_blocks, overdue_blocks)
+        # Calculate weighted blocks for selection
+        weighted_blocks = self._calculate_weighted_blocks(blocks, include_parent_weights=True)
+        
+        # Filter weighted blocks by those that would fit
+        fitting_weighted = [(b, w) for b, w in weighted_blocks if b.length_multiplier <= 1.0]
+        if not fitting_weighted:
+            return None
+
+        selected_block = self._select_weighted_block(fitting_weighted)
+        if not selected_block:
+            return None
+
+        queue = BlockQueue(selected_block, pick_reason=PickReason.NORMAL)
+        self._fill_fractional_queue(queue, blocks, overdue_blocks)
         return queue
+
+    def pick_block_queue_leaf_based(self):
+        """Pick a block queue by considering all leaf nodes together."""
+        leaf_blocks = self.get_all_leaf_blocks()
+        return self._build_block_queue(leaf_blocks)
 
     def pick_block_queue_hierarchical(self):
         """Pick a block queue using the hierarchical method."""
@@ -238,38 +240,21 @@ class BlockService:
             if not blocks:
                 return None
 
-            # First check for overdue blocks at this level
-            overdue_blocks = self._get_overdue_blocks(blocks)
-            if overdue_blocks:
-                selected_block = random.choice(overdue_blocks)
-                queue = BlockQueue(selected_block, pick_reason=PickReason.OVERDUE)
-                return queue
-
-            # Otherwise use weighted selection without parent weights
-            weighted_blocks = self._calculate_weighted_blocks(blocks, include_parent_weights=False)
-            selected_block = self._select_weighted_block(weighted_blocks)
-
-            if not selected_block:
+            # Build queue at this level
+            selected_queue = self._build_block_queue(blocks)
+            if not selected_queue:
                 return None
-
-            # Get children of the selected block
+                
+            selected_block = selected_queue.blocks[0]  # Get the primary block from the queue
             children = self.session.query(Block).filter_by(parent_id=selected_block.id).all()
 
             if not children:
-                # If no children, we've reached a leaf node
-                queue = BlockQueue(selected_block, pick_reason=PickReason.NORMAL)
-                return queue
+                # If no children, return the queue we built
+                return selected_queue
 
-            # Pick from children and create a queue
+            # Try to pick from children
             child_queue = pick_block_queue_recursive(children)
-            if not child_queue:
-                queue = BlockQueue(selected_block, pick_reason=PickReason.NORMAL)
-                return queue
-
-            # Fill the queue with fractional blocks if needed
-            weighted_blocks = self._calculate_weighted_blocks(children, include_parent_weights=False)
-            self._fill_fractional_queue(child_queue, children, weighted_blocks, overdue_blocks)
-            return child_queue
+            return child_queue if child_queue else selected_queue
 
         # Start the recursive selection from root blocks
         root_blocks = self.get_root_blocks()
