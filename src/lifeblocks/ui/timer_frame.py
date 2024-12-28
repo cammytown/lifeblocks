@@ -222,7 +222,7 @@ class TimerFrame(ttk.Frame):
         if completion_dialog.result:
             if completion_dialog.result.get("save", True):
                 self.timer_service.save_session(
-                    elapsed,
+                    completion_dialog.result["total_elapsed"],
                     satisfaction_level=completion_dialog.result["satisfaction"],
                     notes=completion_dialog.result["notes"],
                 )
