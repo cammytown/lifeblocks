@@ -6,6 +6,7 @@ from lifeblocks.models.timeblock import TimeBlockState
 import tkinter.messagebox as messagebox
 from sqlalchemy import tuple_
 from .dialogs.edit_timeblock_dialog import EditTimeBlockDialog
+from .dialogs.add_timeblock_dialog import AddTimeBlockDialog
 
 
 class HistoryFrame(ttk.Frame):
@@ -71,6 +72,15 @@ class HistoryFrame(ttk.Frame):
         # Button frame
         button_frame = ttk.Frame(filter_frame)
         button_frame.pack(side="left")
+
+        # Add Manually button
+        add_button = ttk.Button(
+            button_frame,
+            text="Add Manually",
+            style="Secondary.TButton",
+            command=self.add_timeblock,
+        )
+        add_button.pack(side="left", padx=(0, 10))
 
         # Edit button
         edit_button = ttk.Button(
@@ -345,5 +355,10 @@ class HistoryFrame(ttk.Frame):
 
         # Show edit dialog
         dialog = EditTimeBlockDialog(self, self.session, timeblock)
+        if dialog.result:
+            self.refresh_history()
+
+    def add_timeblock(self):
+        dialog = AddTimeBlockDialog(self, self.session)
         if dialog.result:
             self.refresh_history()
