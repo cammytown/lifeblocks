@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from .dialogs.edit_block_dialogue import EditBlockDialog
-from .dialogs.add_block_dialogue import AddBlockDialog
+from .dialogs.edit_block_dialog import EditBlockDialog
+from .dialogs.add_block_dialog import AddBlockDialog
 
 
 class BlockFrame(ttk.Frame):

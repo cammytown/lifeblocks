@@ -3,67 +3,7 @@ from tkinter import ttk
 from .base_dialog import BaseDialog
 from lifeblocks.models.timeblock import PickReason
 
-
-class DelayDialog(BaseDialog):
-    def __init__(self, parent, block_name):
-        self.block_name = block_name
-        self.result = None
-        super().__init__(parent, "Delay Block", y_offset=100)
-
-    def setup_ui(self):
-        # Block name
-        ttk.Label(self.main_frame, text=f"Delay block:", style="TLabel").pack(
-            pady=(0, 5)
-        )
-        ttk.Label(self.main_frame, text=self.block_name, font=("Helvetica", 12, "bold")).pack(
-            pady=(0, 20)
-        )
-
-        # Delay duration input
-        delay_frame = ttk.Frame(self.main_frame)
-        delay_frame.pack(pady=(0, 20))
-        ttk.Label(delay_frame, text="Delay for:").pack(side="left", padx=(0, 5))
-        
-        self.delay_var = tk.StringVar(value="4")
-        delay_spinbox = ttk.Spinbox(
-            delay_frame,
-            from_=1,
-            to=24,
-            width=3,
-            textvariable=self.delay_var
-        )
-        delay_spinbox.pack(side="left", padx=(0, 5))
-        ttk.Label(delay_frame, text="hours").pack(side="left")
-
-        # Buttons
-        btn_frame = ttk.Frame(self.main_frame, style="Card.TFrame")
-        btn_frame.pack(fill="x", pady=(20, 0))
-
-        ttk.Button(
-            btn_frame,
-            text="Cancel",
-            style="Secondary.TButton",
-            command=self.destroy,
-        ).pack(side="right", padx=5)
-
-        ttk.Button(
-            btn_frame,
-            text="Delay",
-            style="Accent.TButton",
-            command=self._submit,
-        ).pack(side="right", padx=5)
-
-    def _submit(self):
-        try:
-            delay_hours = int(self.delay_var.get())
-            if 1 <= delay_hours <= 24:
-                self.result = delay_hours
-                self.destroy()
-        except ValueError:
-            pass
-
-
-class ResistanceDialog(BaseDialog):
+class StartBlockDialog(BaseDialog):
     def __init__(self, parent, block_name, pick_reason=PickReason.NORMAL):
         self.block_name = block_name
         self.pick_reason = pick_reason
@@ -145,3 +85,62 @@ class ResistanceDialog(BaseDialog):
             # Set a normal result with resistance level
             self.result = {"delayed": False, "resistance": int(self.resistance_var.get())}
             self.destroy()
+
+
+class DelayDialog(BaseDialog):
+    def __init__(self, parent, block_name):
+        self.block_name = block_name
+        self.result = None
+        super().__init__(parent, "Delay Block", y_offset=100)
+
+    def setup_ui(self):
+        # Block name
+        ttk.Label(self.main_frame, text=f"Delay block:", style="TLabel").pack(
+            pady=(0, 5)
+        )
+        ttk.Label(self.main_frame, text=self.block_name, font=("Helvetica", 12, "bold")).pack(
+            pady=(0, 20)
+        )
+
+        # Delay duration input
+        delay_frame = ttk.Frame(self.main_frame)
+        delay_frame.pack(pady=(0, 20))
+        ttk.Label(delay_frame, text="Delay for:").pack(side="left", padx=(0, 5))
+        
+        self.delay_var = tk.StringVar(value="4")
+        delay_spinbox = ttk.Spinbox(
+            delay_frame,
+            from_=1,
+            to=24,
+            width=3,
+            textvariable=self.delay_var
+        )
+        delay_spinbox.pack(side="left", padx=(0, 5))
+        ttk.Label(delay_frame, text="hours").pack(side="left")
+
+        # Buttons
+        btn_frame = ttk.Frame(self.main_frame, style="Card.TFrame")
+        btn_frame.pack(fill="x", pady=(20, 0))
+
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            style="Secondary.TButton",
+            command=self.destroy,
+        ).pack(side="right", padx=5)
+
+        ttk.Button(
+            btn_frame,
+            text="Delay",
+            style="Accent.TButton",
+            command=self._submit,
+        ).pack(side="right", padx=5)
+
+    def _submit(self):
+        try:
+            delay_hours = int(self.delay_var.get())
+            if 1 <= delay_hours <= 24:
+                self.result = delay_hours
+                self.destroy()
+        except ValueError:
+            pass

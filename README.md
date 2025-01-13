@@ -138,12 +138,10 @@ Remember: This is a tool for enhancing your creative practice, not a taskmaster.
 # TODO
 - make BaseDialog a subclass of tk.Toplevel?
 - give option to reduce length of block; maybe check it by default if resistance is high
-- add Restart button to completion dialog
 - add + and - buttons to timer frame
-- track forced blocks
 - rename ResistanceDialog to something like StartBlockDialog
-- insert time blocks into history manually
 - improve block selection algorithm so it reduces weight of blocks not just based on recent usage, but also based on the number of times they've been selected recently
+- add Restart button to completion dialog
 
 # CREDITS
 - Most of the code for the software was generated with AI, including most of this README (after some prompting and wrestling)

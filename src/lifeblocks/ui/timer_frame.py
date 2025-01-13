@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import time
 
-from lifeblocks.ui.dialogs.resistance_dialog import ResistanceDialog
+from lifeblocks.ui.dialogs.start_block_dialog import StartBlockDialog
 from lifeblocks.ui.dialogs.completion_dialog import CompletionDialog
 from lifeblocks.models.timeblock import TimeBlockState
 
@@ -303,7 +303,7 @@ class TimerFrame(ttk.Frame):
         block = self.current_block_queue.blocks[self.current_block_index]
 
         # Show resistance dialog for the next block
-        resistance_dialog = ResistanceDialog(self, block.name, self.current_block_queue.pick_reason)
+        resistance_dialog = StartBlockDialog(self, block.name, self.current_block_queue.pick_reason)
         self.wait_window(resistance_dialog.dialog)
 
         if resistance_dialog.result is None:
