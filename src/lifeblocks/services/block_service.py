@@ -387,6 +387,26 @@ class BlockService:
         # Mark first run as complete
         self.settings_service.set_setting("first_run_complete", "true")
 
+    def get_category_path(self, block_id: int) -> str:
+        """Get the category path for a block, excluding the block itself."""
+        block = self.session.query(Block).get(block_id)
+        if not block:
+            return ""
+
+        path = []
+        current = block
+
+        # Traverse up the parent chain
+        while current.parent_id is not None:
+            parent = self.session.query(Block).get(current.parent_id)
+            if not parent:
+                break
+            path.append(parent.name)
+            current = parent
+
+        # Return path from root to parent (excluding the block itself)
+        return " → ".join(reversed(path)) if path else ""
+
     def create_single_block_queue(self, block_id):
         """Create a queue with just a single block."""
         block = self.session.query(Block).get(block_id)

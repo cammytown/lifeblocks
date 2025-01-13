@@ -4,19 +4,31 @@ from .base_dialog import BaseDialog
 from lifeblocks.models.timeblock import PickReason
 
 class StartBlockDialog(BaseDialog):
-    def __init__(self, parent, block_name, pick_reason=PickReason.NORMAL):
+    def __init__(self, parent, block_name, category_path=None, pick_reason=PickReason.NORMAL):
         self.block_name = block_name
+        self.category_path = category_path
         self.pick_reason = pick_reason
         super().__init__(parent, "Rate Resistance", y_offset=100)
 
     def setup_ui(self):
-        # Block name
+        # Block name and category path
         ttk.Label(self.main_frame, text=f"Before starting work on:", style="TLabel").pack(
             pady=(0, 5)
         )
         ttk.Label(self.main_frame, text=self.block_name, font=("Helvetica", 12, "bold")).pack(
-            pady=(0, 20)
+            pady=(0, 5)
         )
+        
+        # Show category path
+        if self.category_path:  # Show if there's a category path
+            ttk.Label(
+                self.main_frame,
+                text=self.category_path,
+                font=("Helvetica", 10, "italic"),
+                foreground="#666666"  # Subtle gray color
+            ).pack(pady=(0, 15))
+        else:
+            ttk.Label(self.main_frame, text="").pack(pady=(0, 15))  # Spacer
 
         # Show overdue notice if applicable
         if self.pick_reason == PickReason.OVERDUE:

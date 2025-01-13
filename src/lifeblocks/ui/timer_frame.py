@@ -302,8 +302,16 @@ class TimerFrame(ttk.Frame):
 
         block = self.current_block_queue.blocks[self.current_block_index]
 
+        # Get category path before showing dialog
+        category_path = self.block_service.get_category_path(block.id)
+
         # Show resistance dialog for the next block
-        resistance_dialog = StartBlockDialog(self, block.name, self.current_block_queue.pick_reason)
+        resistance_dialog = StartBlockDialog(
+            self,
+            block.name,
+            category_path,
+            self.current_block_queue.pick_reason
+        )
         self.wait_window(resistance_dialog.dialog)
 
         if resistance_dialog.result is None:
