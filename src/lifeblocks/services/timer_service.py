@@ -181,6 +181,25 @@ class TimerService:
         # Start fresh timer with same parameters
         return self.start_timer(block, duration, resistance, forced=False)
 
+    def adjust_timer(self, seconds):
+        """Adjust the timer by adding or subtracting seconds."""
+        if not self.timer_active:
+            return False
+
+        if self.paused:
+            # If paused, adjust from pause start time
+            new_end = self.end_time + seconds
+            if new_end > self.pause_start:
+                self.end_time = new_end
+                return True
+        else:
+            # If running, adjust from current time
+            new_end = self.end_time + seconds
+            if new_end > time.time():
+                self.end_time = new_end
+                return True
+        return False
+
     def save_session(self, elapsed_minutes, satisfaction_level=None, notes=None):
         if not self.session_start or not self.current_block:
             return False

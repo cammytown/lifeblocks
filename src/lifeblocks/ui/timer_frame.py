@@ -139,12 +139,20 @@ class TimerFrame(ttk.Frame):
         timer_frame = ttk.Frame(control_frame)
         timer_frame.pack(side="right", padx=20)
 
-        ttk.Label(timer_frame, text="Time Remaining", font=("Helvetica", 8)).pack(
+        # Create a frame for the timer and adjustment buttons
+        timer_controls_frame = ttk.Frame(timer_frame)
+        timer_controls_frame.pack(anchor="e")
+
+        # Timer section
+        timer_section = ttk.Frame(timer_controls_frame)
+        timer_section.pack(side="left")
+
+        ttk.Label(timer_section, text="Time Remaining", font=("Helvetica", 8)).pack(
             anchor="e"
         )
 
         self.time_label = ttk.Label(
-            timer_frame,
+            timer_section,
             text="25:00",
             font=("Helvetica", 48, "bold"),
             foreground="#7768E5",
@@ -152,6 +160,32 @@ class TimerFrame(ttk.Frame):
         )
         self.time_label.pack(anchor="e")
         self.time_label.bind("<Button-1>", self.show_duration_dialog)
+
+        # Add time adjustment buttons frame
+        time_adjust_frame = ttk.Frame(timer_controls_frame)
+        time_adjust_frame.pack(side="left", padx=(10, 0))
+
+        # Add -10 button
+        self.minus_button = ttk.Button(
+            time_adjust_frame,
+            text="-10",
+            style="Secondary.TButton",
+            width=4,
+            command=lambda: self.adjust_timer(-10),
+            state="disabled"
+        )
+        self.minus_button.pack(side="top", pady=2)
+
+        # Add +10 button
+        self.plus_button = ttk.Button(
+            time_adjust_frame,
+            text="+10",
+            style="Secondary.TButton",
+            width=4,
+            command=lambda: self.adjust_timer(10),
+            state="disabled"
+        )
+        self.plus_button.pack(side="top", pady=2)
 
         # Button frame for Start and Pause
         button_frame = ttk.Frame(control_frame)
@@ -208,6 +242,8 @@ class TimerFrame(ttk.Frame):
         self.start_button.configure(text="Start")
         self.pause_button.configure(text="Pause", state="disabled")
         self.restart_button.configure(state="disabled")
+        self.minus_button.configure(state="disabled")
+        self.plus_button.configure(state="disabled")
         self.block_var.set("")
         self.current_block_queue = None
         self.current_block_index = 0
@@ -353,25 +389,34 @@ class TimerFrame(ttk.Frame):
         self.start_button.configure(text="Stop")
         self.pause_button.configure(state="normal")
         self.restart_button.configure(state="normal")
+        self.minus_button.configure(state="normal")
+        self.plus_button.configure(state="normal")
 
     def update_timer(self):
         if self.timer_service.timer_active:
-            minutes, seconds, is_finished = self.timer_service.get_remaining_time()
+            _, _, is_finished = self.timer_service.get_remaining_time()
 
             if is_finished and self.current_block:
                 elapsed = self.timer_service.stop_timer()
                 self.notification_service.alert_time_up(self.current_block.name)
                 self.handle_session_completion(elapsed)
             else:
-                self.time_label.configure(text=f"{minutes:02d}:{seconds:02d}")
+                self.update_timer_display()
         else:
             try:
                 minutes = int(self.duration_var.get())
-                self.time_label.configure(text=f"{minutes:02d}:00")
+                self.update_timer_display(minutes, 0)
             except ValueError:
-                self.time_label.configure(text="00:00")
+                self.update_timer_display(0, 0)
 
         self.after(1000, self.update_timer)
+
+    def update_timer_display(self, minutes=None, seconds=None):
+        """Update the timer display with the given minutes and seconds.
+        If no arguments provided, gets the current time from timer_service."""
+        if minutes is None:
+            minutes, seconds, _ = self.timer_service.get_remaining_time()
+        self.time_label.configure(text=f"{minutes:02d}:{seconds:02d}")
 
     def show_duration_dialog(self, event=None):
         if not self.timer_service.timer_active:
@@ -387,4 +432,10 @@ class TimerFrame(ttk.Frame):
                 self.duration_var.set(str(dialog.result))
                 # Save the new duration to settings
                 self.timer_service.set_default_duration(dialog.result)
-                self.update_timer()
+                self.update_timer_display(dialog.result, 0)
+
+    def adjust_timer(self, seconds):
+        """Adjust the timer by the given number of seconds."""
+        if self.timer_service.timer_active:
+            if self.timer_service.adjust_timer(seconds):
+                self.update_timer_display()
