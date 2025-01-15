@@ -370,10 +370,14 @@ class TimerFrame(ttk.Frame):
         if was_force_started:
             adjusted_duration = base_duration * block.length_multiplier
         else:
-            # For normal queues (including naturally occurring single-block queues),
-            # calculate adjusted duration based on the block's proportion of the total queue
-            block_proportion = block.length_multiplier / self.current_block_queue.total_multiplier
-            adjusted_duration = base_duration * block_proportion
+            # Always respect the block's length_multiplier
+            # Only use queue proportions if we have multiple blocks
+            #@REVISIT seems hacky
+            if len(self.current_block_queue.blocks) > 1:
+                block_proportion = block.length_multiplier / self.current_block_queue.total_multiplier
+                adjusted_duration = base_duration * block_proportion
+            else:
+                adjusted_duration = base_duration * block.length_multiplier
 
         self.current_block = block
         self.block_var.set(

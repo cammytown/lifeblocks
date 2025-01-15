@@ -140,6 +140,7 @@ Remember: This is a tool for enhancing your creative practice, not a taskmaster.
 - give option to reduce length of block; maybe check it by default if resistance is high
 - improve block selection algorithm so it reduces weight of blocks not just based on recent usage, but also based on the number of times they've been selected recently
 - add Restart button to completion dialog
+- kinda weird idea: maybe the color of the interface changes based on how many blocks you've completed in a row
 
 # CREDITS
 - Most of the code for the software was generated with AI, including most of this README (after some prompting and wrestling)
