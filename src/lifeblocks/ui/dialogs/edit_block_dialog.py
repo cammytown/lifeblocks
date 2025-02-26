@@ -25,6 +25,7 @@ class EditBlockDialog(BlockDialog):
         self.length_multiplier_entry.insert(0, str(self.block.length_multiplier))
         if self.block.min_duration_minutes is not None:
             self.min_duration_entry.insert(0, str(self.block.min_duration_minutes))
+        self.active_var.set(self.block.active)
 
         # Set up parent combo with valid parents
         all_blocks = self.block_service.get_all_blocks()
@@ -74,6 +75,7 @@ class EditBlockDialog(BlockDialog):
             max_interval_hours=values["max_interval_hours"],
             length_multiplier=values["length_multiplier"],
             min_duration_minutes=values["min_duration_minutes"],
+            active=values["active"],
         )
 
         self.result = True

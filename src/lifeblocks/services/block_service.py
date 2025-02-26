@@ -44,6 +44,14 @@ class BlockService:
     def get_root_blocks(self):
         return self.session.query(Block).filter_by(parent_id=None).all()
 
+    def get_all_active_blocks(self):
+        """Get all blocks that are active."""
+        return self.session.query(Block).filter_by(active=True).all()
+
+    def get_active_root_blocks(self):
+        """Get all root blocks that are active."""
+        return self.session.query(Block).filter_by(parent_id=None, active=True).all()
+
     def update_block(
         self,
         block_id,
@@ -53,6 +61,7 @@ class BlockService:
         max_interval_hours=None,
         length_multiplier=None,
         min_duration_minutes=None,
+        active=None,
     ):
         block = self.session.query(Block).get(block_id)
         if not block:
@@ -77,6 +86,8 @@ class BlockService:
             block.length_multiplier = length_multiplier
         if min_duration_minutes is not None:
             block.min_duration_minutes = min_duration_minutes
+        if active is not None:
+            block.active = active
 
         self.session.commit()
         return block
@@ -100,6 +111,29 @@ class BlockService:
         """Get all blocks that have no children."""
         all_blocks = self.get_all_blocks()
         return [block for block in all_blocks if not any(b.parent_id == block.id for b in all_blocks)]
+
+    def _has_active_parent_chain(self, block, all_blocks=None):
+        """Check if all parents in a block's hierarchy are active."""
+        if all_blocks is None:
+            all_blocks = self.get_all_blocks()
+            
+        current_id = block.parent_id
+        while current_id is not None:
+            parent = next((b for b in all_blocks if b.id == current_id), None)
+            if not parent or not parent.active:
+                return False
+            current_id = parent.parent_id
+        return True
+        
+    def get_active_leaf_blocks(self):
+        """Get all active blocks that have no children and whose parents are all active."""
+        all_blocks = self.get_all_blocks()
+        
+        # First find all leaf blocks (blocks with no children)
+        leaf_blocks = [block for block in all_blocks if not any(b.parent_id == block.id for b in all_blocks)]
+        
+        # Then filter for active leaf blocks with active parent chain
+        return [block for block in leaf_blocks if block.active and self._has_active_parent_chain(block, all_blocks)]
 
     def calculate_accumulated_weight(self, block, time_weight_multiplier=1.0):
         """Calculate a block's weight including its parent's influence."""
@@ -320,7 +354,7 @@ class BlockService:
 
     def pick_block_queue_leaf_based(self):
         """Pick a block queue by considering all leaf nodes together."""
-        leaf_blocks = self.get_all_leaf_blocks()
+        leaf_blocks = self.get_active_leaf_blocks()
         return self._build_block_queue(leaf_blocks)
 
     def pick_block_queue_hierarchical(self):
@@ -329,13 +363,18 @@ class BlockService:
             if not blocks:
                 return None
 
+            # Filter out inactive blocks
+            active_blocks = [block for block in blocks if block.active]
+            if not active_blocks:
+                return None
+
             # Build queue at this level
-            selected_queue = self._build_block_queue(blocks)
+            selected_queue = self._build_block_queue(active_blocks)
             if not selected_queue:
                 return None
                 
             selected_block = selected_queue.blocks[0]  # Get the primary block from the queue
-            children = self.session.query(Block).filter_by(parent_id=selected_block.id).all()
+            children = self.session.query(Block).filter_by(parent_id=selected_block.id, active=True).all()
 
             if not children:
                 # If no children, return the queue we built
@@ -346,7 +385,7 @@ class BlockService:
             return child_queue if child_queue else selected_queue
 
         # Start the recursive selection from root blocks
-        root_blocks = self.get_root_blocks()
+        root_blocks = self.get_active_root_blocks()
         return pick_block_queue_recursive(root_blocks)
 
     def pick_block_queue(self):
@@ -455,3 +494,42 @@ class BlockService:
         cutoff = now - timedelta(hours=delay_duration)
         
         return recent_delay.start_time >= cutoff
+
+    def toggle_block_active_status(self, block_id):
+        """Toggle the active status of a block."""
+        block = self.session.query(Block).get(block_id)
+        if block:
+            block.active = not block.active
+            self.session.commit()
+            return block
+        return None
+
+    def toggle_block_active_status_recursive(self, block_id):
+        """Toggle the active status of a block and all its children."""
+        block = self.session.query(Block).get(block_id)
+        if not block:
+            return None
+            
+        # Toggle the block's active status
+        new_status = not block.active
+        block.active = new_status
+        
+        # Recursively toggle all children
+        def toggle_children(parent_id, status):
+            children = self.session.query(Block).filter_by(parent_id=parent_id).all()
+            for child in children:
+                child.active = status
+                toggle_children(child.id, status)
+                
+        toggle_children(block_id, new_status)
+        self.session.commit()
+        return block
+
+    def set_block_active_status(self, block_id, active):
+        """Set the active status of a block."""
+        block = self.session.query(Block).get(block_id)
+        if block:
+            block.active = active
+            self.session.commit()
+            return block
+        return None

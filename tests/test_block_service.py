@@ -282,6 +282,93 @@ class TestBlockPicking(unittest.TestCase):
             # Clean up for next iteration
             self.session.query(Block).delete()
             self.session.commit()
+            
+    def test_inactive_blocks_excluded(self):
+        """Test that inactive blocks are excluded from selection"""
+        for mode in ["true", "false"]:  # Test both selection modes
+            self.settings_service.set_setting("use_leaf_based_selection", mode)
+            
+            # Create active and inactive blocks
+            active_block = self.block_service.add_block("Active Block", 1)
+            inactive_block = self.block_service.add_block("Inactive Block", 10)  # Higher weight
+            
+            # Set inactive block to inactive
+            inactive_block.active = False
+            self.session.commit()
+            
+            # Perform many picks to ensure inactive block is never selected
+            num_picks = 100
+            for _ in range(num_picks):
+                block_queue = self.block_service.pick_block_queue()
+                self.assertEqual(len(block_queue.blocks), 1)
+                self.assertEqual(block_queue.blocks[0].name, "Active Block")
+                
+            # Clean up for next iteration
+            self.session.query(Block).delete()
+            self.session.commit()
+            
+    def test_inactive_parent_blocks(self):
+        """Test that children of inactive parent blocks are excluded from selection"""
+        for mode in ["true", "false"]:  # Test both selection modes
+            self.settings_service.set_setting("use_leaf_based_selection", mode)
+            
+            # Create active parent with active children
+            active_parent = self.block_service.add_block("Active Parent", 1)
+            active_child = self.block_service.add_block("Active Child", 1, "Active Parent")
+            
+            # Create inactive parent with active children
+            inactive_parent = self.block_service.add_block("Inactive Parent", 10)  # Higher weight
+            inactive_child = self.block_service.add_block("Child of Inactive", 1, "Inactive Parent")
+            
+            # Set inactive parent to inactive
+            inactive_parent.active = False
+            self.session.commit()
+            
+            # Perform many picks to ensure children of inactive parents are never selected
+            num_picks = 100
+            picks = []
+            for _ in range(num_picks):
+                block_queue = self.block_service.pick_block_queue()
+                self.assertEqual(len(block_queue.blocks), 1)
+                picks.append(block_queue.blocks[0].name)
+                
+            # Verify only active blocks were picked
+            self.assertIn("Active Child", picks)
+            self.assertNotIn("Child of Inactive", picks)
+            self.assertNotIn("Inactive Parent", picks)
+            
+            # Clean up for next iteration
+            self.session.query(Block).delete()
+            self.session.commit()
+            
+    def test_recursive_toggle_active(self):
+        """Test that toggling active status recursively affects all children"""
+        # Create a hierarchy of blocks
+        parent = self.block_service.add_block("Parent", 1)
+        child1 = self.block_service.add_block("Child 1", 1, "Parent")
+        child2 = self.block_service.add_block("Child 2", 1, "Parent")
+        grandchild = self.block_service.add_block("Grandchild", 1, "Child 1")
+        
+        # All blocks should be active by default
+        blocks = self.session.query(Block).all()
+        for block in blocks:
+            self.assertTrue(block.active)
+            
+        # Toggle parent to inactive recursively
+        self.block_service.toggle_block_active_status_recursive(parent.id)
+        
+        # All blocks should now be inactive
+        blocks = self.session.query(Block).all()
+        for block in blocks:
+            self.assertFalse(block.active)
+            
+        # Toggle parent back to active recursively
+        self.block_service.toggle_block_active_status_recursive(parent.id)
+        
+        # All blocks should now be active again
+        blocks = self.session.query(Block).all()
+        for block in blocks:
+            self.assertTrue(block.active)
 
 
 if __name__ == "__main__":

@@ -48,6 +48,7 @@ class BlockFrame(ttk.Frame):
                 "length_mult",
                 "min_duration",
                 "last_picked",
+                "status",
             ),
             style="Custom.Treeview",
         )
@@ -57,15 +58,20 @@ class BlockFrame(ttk.Frame):
         self.tree.heading("length_mult", text="Length Mult")
         self.tree.heading("min_duration", text="Min Duration")
         self.tree.heading("last_picked", text="Last Picked")
+        # self.tree.heading("status", text="Status")
         self.tree.column("#0", anchor="w", minwidth=200)
         self.tree.column("weight", width=70, anchor="center")
         self.tree.column("max_interval", width=100, anchor="center")
         self.tree.column("length_mult", width=100, anchor="center")
         self.tree.column("min_duration", width=100, anchor="center")
         self.tree.column("last_picked", width=150, anchor="center")
+        # self.tree.column("status", width=80, anchor="center")
 
         style = ttk.Style()
         style.configure("Custom.Treeview", rowheight=40)
+        
+        # Configure tag for inactive blocks
+        self.tree.tag_configure("inactive", foreground="gray")
 
         self.tree.grid(row=1, column=0, sticky="nsew")
 
@@ -94,6 +100,13 @@ class BlockFrame(ttk.Frame):
         # Edit/Delete buttons in a frame at the bottom
         button_frame = ttk.Frame(self)
         button_frame.grid(row=2, column=0, columnspan=2, padx=5, pady=10, sticky="e")
+
+        ttk.Button(
+            button_frame,
+            text="Toggle Active",
+            command=self.toggle_block_active,
+            style="Secondary.TButton",
+        ).pack(side=tk.LEFT, padx=5)
 
         ttk.Button(
             button_frame,
@@ -142,7 +155,12 @@ class BlockFrame(ttk.Frame):
         # First add root blocks
         for block in blocks:
             if block.parent_id is None:
-                tag = "evenrow" if row_count % 2 == 0 else "oddrow"
+                # Create tags list
+                tags = ["evenrow" if row_count % 2 == 0 else "oddrow"]
+                # Add inactive tag if block is not active
+                if not block.active:
+                    tags.append("inactive")
+                    
                 last_picked = (
                     block.last_picked.strftime("%Y-%m-%d %H:%M")
                     if block.last_picked
@@ -158,6 +176,8 @@ class BlockFrame(ttk.Frame):
                     if block.min_duration_minutes is not None
                     else "-"
                 )
+                status = "Active" if block.active else "Inactive"
+                
                 self.tree.insert(
                     "",
                     "end",
@@ -169,15 +189,21 @@ class BlockFrame(ttk.Frame):
                         f"{block.length_multiplier:.2f}x",
                         min_duration,
                         last_picked,
+                        status,
                     ),
-                    tags=(tag,),
+                    tags=tags,
                 )
                 row_count += 1
 
         # Then add child blocks
         for block in blocks:
             if block.parent_id is not None:
-                tag = "evenrow" if row_count % 2 == 0 else "oddrow"
+                # Create tags list
+                tags = ["evenrow" if row_count % 2 == 0 else "oddrow"]
+                # Add inactive tag if block is not active
+                if not block.active:
+                    tags.append("inactive")
+                    
                 last_picked = (
                     block.last_picked.strftime("%Y-%m-%d %H:%M")
                     if block.last_picked
@@ -193,6 +219,8 @@ class BlockFrame(ttk.Frame):
                     if block.min_duration_minutes is not None
                     else "-"
                 )
+                status = "Active" if block.active else "Inactive"
+                
                 self.tree.insert(
                     str(block.parent_id),
                     "end",
@@ -204,8 +232,9 @@ class BlockFrame(ttk.Frame):
                         f"{block.length_multiplier:.2f}x",
                         min_duration,
                         last_picked,
+                        status,
                     ),
-                    tags=(tag,),
+                    tags=tags,
                 )
                 row_count += 1
 
@@ -253,3 +282,13 @@ class BlockFrame(ttk.Frame):
             self.timer_frame.current_block_index = 0
             self.timer_frame.start_next_block(self.timer_frame.timer_service.get_default_duration())
             self.history_frame.refresh_history()
+
+    def toggle_block_active(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Please select a block to toggle!")
+            return
+
+        block_id = int(selected[0])
+        self.block_service.toggle_block_active_status_recursive(block_id)
+        self.refresh_blocks()

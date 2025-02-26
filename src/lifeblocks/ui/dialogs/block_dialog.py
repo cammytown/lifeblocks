@@ -55,12 +55,19 @@ class BlockDialog(BaseDialog):
         self.parent_combo = ttk.Combobox(self.main_frame, state="readonly", width=28)
         self.parent_combo.grid(row=5, column=1, padx=5, pady=5, sticky="ew")
 
+        # Active Checkbox
+        self.active_var = tk.BooleanVar(value=True)
+        self.active_checkbox = ttk.Checkbutton(
+            self.main_frame, text="Active", variable=self.active_var
+        )
+        self.active_checkbox.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+
         # Configure grid column weights
         self.main_frame.grid_columnconfigure(1, weight=1)
 
         # Buttons
         button_frame = ttk.Frame(self.main_frame)
-        button_frame.grid(row=6, column=0, columnspan=2, pady=(20, 0))
+        button_frame.grid(row=7, column=0, columnspan=2, pady=(20, 0))
 
         ttk.Button(
             button_frame,
@@ -135,6 +142,7 @@ class BlockDialog(BaseDialog):
             "parent_name": self.parent_combo.get(),
             "length_multiplier": length_multiplier,
             "min_duration_minutes": min_duration_minutes,
+            "active": self.active_var.get(),
         }
 
     def save(self):

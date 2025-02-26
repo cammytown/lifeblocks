@@ -8,7 +8,7 @@ from lifeblocks.models import Block, TimeBlock, Settings
 from lifeblocks.models.timeblock import TimeBlockState, PickReason
 
 class DataService:
-    CURRENT_VERSION = "1.13"
+    CURRENT_VERSION = "1.14"
 
     def __init__(self, session: Session):
         self.session = session
@@ -80,6 +80,13 @@ class DataService:
                     f"UPDATE {Block.__tablename__} "
                     "SET created_at = CURRENT_TIMESTAMP"
                 ))
+                
+            if 'active' not in block_columns:
+                # Add active column
+                connection.execute(DDL(
+                    f"ALTER TABLE {Block.__tablename__} "
+                    "ADD COLUMN active BOOLEAN DEFAULT TRUE"
+                ))
 
         # Now update data in a new transaction
         if 'state' not in timeblock_columns:
@@ -91,6 +98,12 @@ class DataService:
         if 'pick_reason' not in timeblock_columns:
             self.session.query(TimeBlock).update(
                 {"pick_reason": PickReason.NORMAL},
+                synchronize_session=False
+            )
+            
+        if 'active' not in block_columns:
+            self.session.query(Block).update(
+                {"active": True},
                 synchronize_session=False
             )
         
@@ -122,6 +135,7 @@ class DataService:
                     "last_picked": block.last_picked.isoformat()
                     if block.last_picked
                     else None,
+                    "active": block.active,
                 }
                 for block in blocks
             ],
@@ -176,6 +190,7 @@ class DataService:
                     max_interval_hours=block_data.get("max_interval_hours"),
                     length_multiplier=block_data.get("length_multiplier", 1.0),
                     min_duration_minutes=block_data.get("min_duration_minutes"),
+                    active=block_data.get("active", True),
                 )
                 block.id = block_data["id"]  # Preserve original IDs
                 if block_data.get("last_picked"):
@@ -224,8 +239,15 @@ class DataService:
     def _migrate_data(self, data: Dict[str, Any], from_version: str) -> Dict[str, Any]:
         """Handle data migration between versions.
         This method should be expanded as new versions are created."""
-        # Currently we're at version 1.0, so no migrations are needed yet
-        # Future migrations would be implemented here
+        
+        # Add active field to blocks if importing from before version 1.14
+        # if from_version < "1.14":
+        #     for block in data.get("blocks", []):
+        #         if "active" not in block:
+        #             block["active"] = True
+                    
+        # Update version to current
+        data["version"] = self.CURRENT_VERSION
         return data
 
     def export_to_file(self, filepath: str) -> None:
