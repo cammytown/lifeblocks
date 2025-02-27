@@ -200,6 +200,27 @@ class TimerService:
                 return True
         return False
 
+    def track_unfocused_time(self, seconds):
+        """Track time where the user was not focused by treating it as additional pause time.
+        Unlike adjust_timer, this doesn't change the end time; it just accounts for time
+        that shouldn't be counted as productive work."""
+        if not self.timer_active:
+            return False
+            
+        # Add the unfocused time to total pause duration
+        self.total_pause_duration += seconds
+        
+        # Update timeblock pause duration if we have an active timeblock
+        if self.active_timeblock:
+            self.active_timeblock.pause_duration_minutes = self.total_pause_duration / 60
+            self.session.commit()
+            self._notify_state_change()
+            
+        # Move the end time forward by the same amount to maintain the same total working time
+        self.end_time += seconds
+        
+        return True
+
     def save_session(self, elapsed_minutes, satisfaction_level=None, notes=None):
         if not self.session_start or not self.current_block:
             return False

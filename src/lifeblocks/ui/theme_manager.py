@@ -29,6 +29,7 @@ class ThemeManager:
         style.configure("TLabel", background="#1A1625", foreground="#E8E6F0")
         style.configure("TButton", background="#2D2438", foreground="#E8E6F0")
         style.configure("Secondary.TButton", background="#342B42", foreground="#E8E6F0")
+        style.configure("Red.TButton", background="#8B4343", foreground="#E8E6F0")  # Softer red for dark mode
         style.configure("TEntry", fieldbackground="#2D2438", foreground="#E8E6F0")
         style.configure("TSpinbox", fieldbackground="#2D2438", foreground="#E8E6F0", arrowcolor="#E8E6F0")
         style.configure("TFrame", background="#1A1625")
@@ -135,6 +136,19 @@ class ThemeManager:
             ],
         )
 
+        # Red button hover states for dark theme
+        style.map(
+            "Red.TButton",
+            background=[
+                ("active", "#A25050"),  # Darker red on hover
+                ("disabled", "#4D2F2F")  # Very dark red for disabled
+            ],
+            foreground=[
+                ("active", "#FFFFFF"),  # White text on hover
+                ("disabled", "#888888")  # Gray for disabled text
+            ],
+        )
+
     def _apply_light_theme(self):
         self.root.configure(bg="#F5F3F7")
         style = ttk.Style()
@@ -144,6 +158,7 @@ class ThemeManager:
         style.configure("TLabel", background="#F5F3F7", foreground="#2D2438")
         style.configure("TButton", background="#E8E6F0", foreground="#2D2438")
         style.configure("Secondary.TButton", background="#F0EDF4", foreground="#2D2438")
+        style.configure("Red.TButton", background="#D88E8E", foreground="#2D2438")  # Softer red for light mode
         style.configure("TEntry", fieldbackground="#FFFFFF", foreground="#2D2438")
         style.configure("TSpinbox", fieldbackground="#FFFFFF", foreground="#2D2438", arrowcolor="#2D2438")
         style.configure("TFrame", background="#F5F3F7")
@@ -247,6 +262,19 @@ class ThemeManager:
             foreground=[
                 ("active", "#2D2438"),  # Normal text on hover
                 ("disabled", "#888888")  # Medium gray for disabled text
+            ],
+        )
+
+        # Red button hover states for light theme
+        style.map(
+            "Red.TButton",
+            background=[
+                ("active", "#C26666"),  # Lighter red on hover for light theme
+                ("disabled", "#E8D8D8")  # Light gray-red for disabled
+            ],
+            foreground=[
+                ("active", "#451F1F"),  # Dark red text on hover for light theme
+                ("disabled", "#888888")  # Gray for disabled text
             ],
         )
 

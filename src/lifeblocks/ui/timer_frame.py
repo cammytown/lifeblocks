@@ -5,6 +5,7 @@ import time
 from lifeblocks.ui.dialogs.start_block_dialog import StartBlockDialog
 from lifeblocks.ui.dialogs.completion_dialog import CompletionDialog
 from lifeblocks.models.timeblock import TimeBlockState
+from lifeblocks.ui.tooltip import ToolTip
 
 
 class DurationDialog:
@@ -104,6 +105,10 @@ class TimerFrame(ttk.Frame):
             self.start_button.configure(text="Stop")
             self.pause_button.configure(state="normal")
             self.restart_button.configure(state="normal")
+            self.minus_button.configure(state="normal")
+            self.plus_button.configure(state="normal")
+            self.unfocus_minus_button.configure(state="normal")
+            self.unfocus_plus_button.configure(state="normal")
             if self.timer_service.paused:
                 self.pause_button.configure(text="Resume")
 
@@ -175,6 +180,7 @@ class TimerFrame(ttk.Frame):
             state="disabled"
         )
         self.minus_button.pack(side="top", pady=2)
+        self.minus_button_tooltip = ToolTip(self.minus_button, "Reduce timer by 10 sec. Changes total block duration.")
 
         # Add +10 button
         self.plus_button = ttk.Button(
@@ -186,6 +192,35 @@ class TimerFrame(ttk.Frame):
             state="disabled"
         )
         self.plus_button.pack(side="top", pady=2)
+        self.plus_button_tooltip = ToolTip(self.plus_button, "Add 10 sec to timer. Changes total block duration.")
+
+        # Add unfocused time adjustment buttons in a separate frame with red styling
+        unfocused_adjust_frame = ttk.Frame(timer_controls_frame)
+        unfocused_adjust_frame.pack(side="left", padx=(10, 0))
+        
+        # Add -5 unfocused button
+        self.unfocus_minus_button = ttk.Button(
+            unfocused_adjust_frame,
+            text="-5",
+            style="Red.TButton",
+            width=4,
+            command=lambda: self.track_unfocused_time(-5),
+            state="disabled"
+        )
+        self.unfocus_minus_button.pack(side="top", pady=2)
+        self.unfocus_minus_button_tooltip = ToolTip(self.unfocus_minus_button, "Reduce unfocused time by 5 sec. Use when you accidentally tracked time you weren't focused.")
+        
+        # Add +5 unfocused button
+        self.unfocus_plus_button = ttk.Button(
+            unfocused_adjust_frame,
+            text="+5",
+            style="Red.TButton",
+            width=4,
+            command=lambda: self.track_unfocused_time(5),
+            state="disabled"
+        )
+        self.unfocus_plus_button.pack(side="top", pady=2)
+        self.unfocus_plus_button_tooltip = ToolTip(self.unfocus_plus_button, "Add 5 sec of unfocused time. Use when you were distracted but timer kept running.")
 
         # Button frame for Start and Pause
         button_frame = ttk.Frame(control_frame)
@@ -244,6 +279,8 @@ class TimerFrame(ttk.Frame):
         self.restart_button.configure(state="disabled")
         self.minus_button.configure(state="disabled")
         self.plus_button.configure(state="disabled")
+        self.unfocus_minus_button.configure(state="disabled")
+        self.unfocus_plus_button.configure(state="disabled")
         self.block_var.set("")
         self.current_block_queue = None
         self.current_block_index = 0
@@ -395,6 +432,8 @@ class TimerFrame(ttk.Frame):
         self.restart_button.configure(state="normal")
         self.minus_button.configure(state="normal")
         self.plus_button.configure(state="normal")
+        self.unfocus_minus_button.configure(state="normal")
+        self.unfocus_plus_button.configure(state="normal")
 
     def update_timer(self):
         if self.timer_service.timer_active:
@@ -442,4 +481,10 @@ class TimerFrame(ttk.Frame):
         """Adjust the timer by the given number of seconds."""
         if self.timer_service.timer_active:
             if self.timer_service.adjust_timer(seconds):
+                self.update_timer_display()
+
+    def track_unfocused_time(self, seconds):
+        """Track unfocused time by adjusting the timer"""
+        if self.timer_service.timer_active:
+            if self.timer_service.track_unfocused_time(seconds):
                 self.update_timer_display()
