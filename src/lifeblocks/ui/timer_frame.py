@@ -173,7 +173,7 @@ class TimerFrame(ttk.Frame):
         # Add -10 button
         self.minus_button = ttk.Button(
             time_adjust_frame,
-            text="-10",
+            text="-10s",
             style="Secondary.TButton",
             width=4,
             command=lambda: self.adjust_timer(-10),
@@ -185,7 +185,7 @@ class TimerFrame(ttk.Frame):
         # Add +10 button
         self.plus_button = ttk.Button(
             time_adjust_frame,
-            text="+10",
+            text="+10s",
             style="Secondary.TButton",
             width=4,
             command=lambda: self.adjust_timer(10),
@@ -198,29 +198,29 @@ class TimerFrame(ttk.Frame):
         unfocused_adjust_frame = ttk.Frame(timer_controls_frame)
         unfocused_adjust_frame.pack(side="left", padx=(10, 0))
         
-        # Add -5 unfocused button
+        # Add -1m unfocused button
         self.unfocus_minus_button = ttk.Button(
             unfocused_adjust_frame,
-            text="-5",
+            text="-1m",
             style="Red.TButton",
             width=4,
-            command=lambda: self.track_unfocused_time(-5),
+            command=lambda: self.track_unfocused_time(-60),
             state="disabled"
         )
         self.unfocus_minus_button.pack(side="top", pady=2)
-        self.unfocus_minus_button_tooltip = ToolTip(self.unfocus_minus_button, "Reduce unfocused time by 5 sec. Use when you accidentally tracked time you weren't focused.")
+        self.unfocus_minus_button_tooltip = ToolTip(self.unfocus_minus_button, "Reduce unfocused time by 1 minute. Use when you accidentally tracked time you weren't focused.")
         
-        # Add +5 unfocused button
+        # Add +1m unfocused button
         self.unfocus_plus_button = ttk.Button(
             unfocused_adjust_frame,
-            text="+5",
+            text="+1m",
             style="Red.TButton",
             width=4,
-            command=lambda: self.track_unfocused_time(5),
+            command=lambda: self.track_unfocused_time(60),
             state="disabled"
         )
         self.unfocus_plus_button.pack(side="top", pady=2)
-        self.unfocus_plus_button_tooltip = ToolTip(self.unfocus_plus_button, "Add 5 sec of unfocused time. Use when you were distracted but timer kept running.")
+        self.unfocus_plus_button_tooltip = ToolTip(self.unfocus_plus_button, "Add 1 minute of unfocused time. Use when you were distracted but timer kept running.")
 
         # Button frame for Start and Pause
         button_frame = ttk.Frame(control_frame)
